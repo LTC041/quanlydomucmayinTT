@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý thay/đổ mực máy in</title>
+    <link rel="stylesheet" href="/index.css" />
+  </head>
+
+  <body>
+    <header>
+      <div class="wrap">
+        <div class="hero">
+          <div class="logo">🖨️</div>
+          <div>
+            <h1>Quản lý thay/đổ mực máy in</h1>
+            <div class="sub">
+              Mỗi 2 lần đổ mực &rarr; thay hộp mực. Giao diện giúp theo dõi, lọc
+              và nhắc việc nhanh.
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="filters">
+            <input
+              id="search"
+              class="input"
+              placeholder="Tìm theo phòng, model, số máy..."
+            />
+            <select id="statusFilter" class="select">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="ok">Đang bình thường</option>
+              <option value="warn">Cần lưu ý (1 lần đổ)</option>
+              <option value="danger">Đến hạn thay (&ge; 2 lần đổ)</option>
+            </select>
+            <select id="roomFilter" class="select">
+              <option value="all">Tất cả phòng/bộ phận</option>
+            </select>
+          </div>
+          <div class="actions">
+            <input type="file" id="csvInput" accept=".csv" hidden />
+            <label for="csvInput" class="button btn-accent">Nhập CSV</label>
+            <button id="exportCsv" class="button btn-quiet">Xuất CSV</button>
+            <button id="addPrinter" class="button btn-primary">
+              + Thêm máy in
+            </button>
+            <button
+              id="runTests"
+              class="button btn-quiet"
+              title="Chạy tự kiểm tra đơn giản"
+            >
+              Tự kiểm tra
+            </button>
+            <button
+              id="resetData"
+              class="button btn-quiet"
+              title="Xoá dữ liệu đã lưu trong trình duyệt"
+            >
+              Đặt lại
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div
+        class="panel"
+        id="dropZone"
+        title="Kéo & thả CSV vào đây để nhập dữ liệu"
+      >
+        <table id="table">
+          <thead>
+            <tr>
+              <th style="width: 44px">#</th>
+              <th>Phòng/Bộ phận</th>
+              <th>Tên máy/Model</th>
+              <th>Mã hộp mực</th>
+              <th>Lần đổ mực (từ lần thay gần nhất)</th>
+              <th>Lần thay gần nhất</th>
+              <th>Ghi chú</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="tag" style="margin-top: 8px">
+        Mẹo: Bấm <strong>Nhập CSV</strong> hoặc kéo & thả file CSV vào khung
+        bảng để nạp dữ liệu.
+      </div>
+
+      <div class="footer">
+        Dữ liệu được lưu cục bộ bằng <span class="tag">localStorage</span>. Có
+        thể nhập CSV (từ file Excel đã chuyển) hoặc xuất để lưu trữ/chia sẻ.
+      </div>
+    </main>
+
+    <!-- Dialog thêm/sửa -->
+    <dialog id="editDlg">
+      <div class="dialog-head">
+        <strong id="dlgTitle">Máy in</strong>
+        <button class="chip-btn" onclick="editDlg.close()">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <div class="grid-2">
+          <div class="field">
+            <label>Phòng/Bộ phận</label>
+            <input id="fRoom" />
+          </div>
+          <div class="field">
+            <label>Tên máy/Model</label>
+            <input id="fModel" />
+          </div>
+          <div class="field">
+            <label>Mã hộp mực</label>
+            <input id="fCartridge" />
+          </div>
+          <div class="field">
+            <label>Lần đổ mực (từ lần thay gần nhất)</label>
+            <input id="fRefillCnt" type="number" min="0" />
+          </div>
+          <div class="field">
+            <label>Ngày thay gần nhất</label>
+            <input id="fLastReplace" type="date" />
+          </div>
+          <div class="field">
+            <label>Ghi chú</label>
+            <input id="fNote" />
+          </div>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button id="saveRow" class="button btn-primary">Lưu</button>
+      </div>
+    </dialog>
+
+    <script>
+      /** -----------------------------
+       *  Data shape
+       *  { id, room, model, cartridge, refillCnt, lastReplace, note }
+       *  lastReplace: ISO date string (yyyy-mm-dd) or ''
+       * ----------------------------- */
+      const KEY = "printer-toner-tracker:v1";
+      /** Default example (nếu chưa có dữ liệu) */
+      const EXAMPLE = [
+        {
+          id: genId(),
+          room: "Văn phòng",
+          model: "HP LaserJet Pro M404",
+          cartridge: "CF258A",
+          refillCnt: 0,
+          lastReplace: "",
+          note: "",
+        },
+        {
+          id: genId(),
+          room: "Phòng Kế toán",
+          model: "Canon LBP 223dw",
+          cartridge: "057/057H",
+          refillCnt: 1,
+          lastReplace: "2025-06-01",
+          note: "Đã đổ 1 lần",
+        },
+        {
+          id: genId(),
+          room: "Phòng Kỹ thuật",
+          model: "Brother HL-L2375DW",
+          cartridge: "TN-2385",
+          refillCnt: 2,
+          lastReplace: "2025-05-15",
+          note: "Đến hạn thay",
+        },
+      ];
+
+      /** State */
+      let rows = load();
+      let editingId = null;
+
+      /** Elements */
+      const tbody = document.getElementById("tbody");
+      const search = document.getElementById("search");
+      const statusFilter = document.getElementById("statusFilter");
+      const roomFilter = document.getElementById("roomFilter");
+      const csvInput = document.getElementById("csvInput");
+      const dropZone = document.getElementById("dropZone");
+      const exportBtn = document.getElementById("exportCsv");
+      const addBtn = document.getElementById("addPrinter");
+      const resetBtn = document.getElementById("resetData");
+      const runTestsBtn = document.getElementById("runTests");
+
+      const editDlg = document.getElementById("editDlg");
+      const fRoom = document.getElementById("fRoom");
+      const fModel = document.getElementById("fModel");
+      const fCartridge = document.getElementById("fCartridge");
+      const fRefillCnt = document.getElementById("fRefillCnt");
+      const fLastReplace = document.getElementById("fLastReplace");
+      const fNote = document.getElementById("fNote");
+
+      /** Utils */
+      function genId() {
+        if (typeof crypto !== "undefined" && crypto.randomUUID)
+          return crypto.randomUUID();
+        // Fallback
+        return (
+          "id-" + Math.random().toString(36).slice(2) + Date.now().toString(36)
+        );
+      }
+
+      function load() {
+        try {
+          const raw = localStorage.getItem(KEY);
+          if (!raw) return EXAMPLE;
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return EXAMPLE;
+          return parsed;
+        } catch (e) {
+          return EXAMPLE;
+        }
+      }
+      function save() {
+        localStorage.setItem(KEY, JSON.stringify(rows));
+      }
+
+      function statusOf(row) {
+        const c = Number(row.refillCnt || 0);
+        if (c >= 2) return { key: "danger", text: "Đến hạn thay" };
+        if (c === 1) return { key: "warn", text: "Cần lưu ý (1 lần đổ)" };
+        return { key: "ok", text: "Đang bình thường" };
+      }
+
+      function renderFilters() {
+        const rooms = Array.from(
+          new Set(rows.map((r) => (r.room || "").trim()).filter(Boolean))
+        ).sort();
+        const cur = roomFilter.value;
+        roomFilter.innerHTML =
+          '<option value="all">Tất cả phòng/bộ phận</option>' +
+          rooms
+            .map(
+              (r) =>
+                `<option ${cur === r ? "selected" : ""}>${escapeHtml(
+                  r
+                )}</option>`
+            )
+            .join("");
+      }
+
+      function escapeHtml(s = "") {
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        };
+        return String(s).replace(/[&<>"']/g, (ch) => map[ch]);
+      }
+
+      function render() {
+        const q = (search.value || "").toLowerCase();
+        const s = statusFilter.value;
+        const rf = roomFilter.value;
+
+        const filtered = rows.filter((r) => {
+          const st = statusOf(r).key;
+          const hit = [r.room, r.model, r.cartridge]
+            .join(" ")
+            .toLowerCase()
+            .includes(q);
+          const hitRoom = rf === "all" || (r.room || "") === rf;
+          const hitStatus = s === "all" || s === st;
+          return hit && hitRoom && hitStatus;
+        });
+
+        tbody.innerHTML = filtered
+          .map((r, i) => {
+            const st = statusOf(r);
+            return `<tr>
+          <td class="tag">${i + 1}</td>
+          <td>${escapeHtml(r.room || "")}</td>
+          <td>${escapeHtml(r.model || "")}</td>
+          <td><code>${escapeHtml(r.cartridge || "")}</code></td>
+          <td>${Number(r.refillCnt || 0)}</td>
+          <td>${
+            r.lastReplace
+              ? `<span class="date-pill filled">${new Date(
+                  r.lastReplace
+                ).toLocaleDateString("vi-VN")}</span>`
+              : '<span class="tag">(chưa có)</span>'
+          }</td>
+          <td>${escapeHtml(r.note || "")}</td>
+          <td><span class="badge ${st.key}">${st.text}</span></td>
+          <td class="row-actions">
+            <button class="chip-btn" title="Đổ mực +1" onclick="incRefill('${
+              r.id
+            }')">+ Đổ</button>
+            <button class="chip-btn" title="Ghi nhận đã thay hộp mực" onclick="markReplace('${
+              r.id
+            }')">✓ Thay</button>
+            <button class="chip-btn" onclick="openEdit('${r.id}')">Sửa</button>
+            <button class="chip-btn" onclick="removeRow('${r.id}')">Xoá</button>
+          </td>
+        </tr>`;
+          })
+          .join("");
+
+        renderFilters();
+      }
+
+      /** Actions */
+      function incRefill(id) {
+        rows = rows.map((r) =>
+          r.id === id ? { ...r, refillCnt: Number(r.refillCnt || 0) + 1 } : r
+        );
+        save();
+        render();
+      }
+      function markReplace(id) {
+        const today = new Date();
+        const iso = today.toISOString().slice(0, 10);
+        rows = rows.map((r) =>
+          r.id === id ? { ...r, refillCnt: 0, lastReplace: iso } : r
+        );
+        save();
+        render();
+      }
+      function removeRow(id) {
+        if (!confirm("Xoá máy in này?")) return;
+        rows = rows.filter((r) => r.id !== id);
+        save();
+        render();
+      }
+      function openEdit(id = null) {
+        editingId = id;
+        if (id) {
+          const r = rows.find((x) => x.id === id) || {};
+          fRoom.value = r.room || "";
+          fModel.value = r.model || "";
+          fCartridge.value = r.cartridge || "";
+          fRefillCnt.value = Number(r.refillCnt || 0);
+          fLastReplace.value = (r.lastReplace || "").slice(0, 10);
+          fNote.value = r.note || "";
+          document.getElementById("dlgTitle").textContent = "Sửa máy in";
+        } else {
+          fRoom.value = fModel.value = fCartridge.value = fNote.value = "";
+          fRefillCnt.value = 0;
+          fLastReplace.value = "";
+          document.getElementById("dlgTitle").textContent = "Thêm máy in";
+        }
+        editDlg.showModal();
+      }
+      document.getElementById("saveRow").onclick = () => {
+        const data = {
+          room: fRoom.value.trim(),
+          model: fModel.value.trim(),
+          cartridge: fCartridge.value.trim(),
+          refillCnt: Number(fRefillCnt.value || 0),
+          lastReplace: fLastReplace.value || "",
+          note: fNote.value.trim(),
+        };
+        if (editingId) {
+          rows = rows.map((r) => (r.id === editingId ? { ...r, ...data } : r));
+        } else {
+          rows = [{ id: genId(), ...data }, ...rows];
+        }
+        save();
+        render();
+        editDlg.close();
+      };
+
+      /** CSV import/export */
+      csvInput.addEventListener("change", async (e) => {
+        const files = e.target && e.target.files ? e.target.files : null;
+        const file = files && files.length ? files[0] : null;
+        if (!file) return;
+        await importCsvFileAppendAll(file);
+        e.target.value = "";
+      });
+
+      exportBtn.addEventListener("click", () => {
+        const headers = [
+          "id",
+          "room",
+          "model",
+          "cartridge",
+          "refillCnt",
+          "lastReplace",
+          "note",
+        ];
+        const csv = [headers.join(",")]
+          .concat(rows.map((r) => headers.map((h) => csvCell(r[h])).join(",")))
+          .join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "printers.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // Drag & drop CSV
+      ["dragenter", "dragover"].forEach((evt) =>
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropZone.classList.add("dragover");
+        })
+      );
+      ["dragleave", "drop"].forEach((evt) =>
+        dropZone.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("dragover");
+        })
+      );
+      dropZone.addEventListener("drop", async (e) => {
+        const dt = e.dataTransfer;
+        if (!dt || !dt.files || !dt.files.length) return;
+        const file = dt.files[0];
+        await importCsvFileAppendAll(file);
+      });
+
+      // Append-all import (không gộp theo id/model/room)
+      function normalizeImportedRow(nr) {
+        return {
+          id: nr.id && String(nr.id).trim() ? String(nr.id).trim() : genId(),
+          room: nr.room || "",
+          model: nr.model || "",
+          cartridge: nr.cartridge || "",
+          refillCnt: Number(nr.refillCnt || 0),
+          lastReplace: (nr.lastReplace || "").slice(0, 10),
+          note: nr.note || "",
+        };
+      }
+
+      function appendAll(existingRows, parsedRows) {
+        const existingIds = new Set(existingRows.map((r) => r.id));
+        const newIds = new Set();
+        const appended = parsedRows.map((nr) => {
+          let r = normalizeImportedRow(nr);
+          // Nếu id trùng dữ liệu cũ hoặc trùng trong lô mới, phát sinh id mới
+          while (existingIds.has(r.id) || newIds.has(r.id)) {
+            r.id = genId();
+          }
+          newIds.add(r.id);
+          return r;
+        });
+        return existingRows.concat(appended);
+      }
+
+      async function importCsvFileAppendAll(file) {
+        const text = await file.text();
+        const newRows = parseCsv(text);
+        if (!newRows.length) {
+          alert("CSV không hợp lệ hoặc rỗng.");
+          return;
+        }
+        rows = appendAll(rows, newRows);
+        save();
+        render();
+      }
+
+      function csvCell(v) {
+        if (v == null) return "";
+        const s = String(v).replaceAll('"', '""');
+        return /[",\n]/.test(s) ? '"' + s + '"' : s;
+      }
+
+      function parseCsv(text) {
+        // Simple CSV parser that tolerates BOM and quoted commas
+        text = text.replace(/^\uFEFF/, "");
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        if (!lines.length) return [];
+        const headers = splitCsvLine(lines[0]).map((h) => h.trim());
+        const idx = (name) =>
+          headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
+
+        const colMap = {
+          id: idx("id"),
+          room:
+            idx("room") > -1
+              ? idx("room")
+              : idx("phòng") > -1
+              ? idx("phòng")
+              : idx("phòng/ bộ phận"),
+          model: idx("model") > -1 ? idx("model") : idx("tên máy/model"),
+          cartridge:
+            idx("cartridge") > -1 ? idx("cartridge") : idx("mã hộp mực"),
+          refillCnt:
+            idx("refillcnt") > -1 ? idx("refillcnt") : idx("lần đổ mực"),
+          lastReplace:
+            idx("lastreplace") > -1 ? idx("lastreplace") : idx("ngày thay"),
+          note: idx("note") > -1 ? idx("note") : idx("ghi chú"),
+        };
+
+        return lines
+          .slice(1)
+          .map((line) => {
+            const cells = splitCsvLine(line);
+            const pick = (i) => (i != null && i > -1 ? cells[i] || "" : "");
+            const obj = {
+              id: pick(colMap.id),
+              room: pick(colMap.room),
+              model: pick(colMap.model),
+              cartridge: pick(colMap.cartridge),
+              refillCnt: Number(pick(colMap.refillCnt) || 0),
+              lastReplace: (pick(colMap.lastReplace) || "").slice(0, 10),
+              note: pick(colMap.note),
+            };
+            if (!obj.room && !obj.model) return null;
+            return obj;
+          })
+          .filter(Boolean);
+      }
+
+      function splitCsvLine(line) {
+        const out = [];
+        let cur = "";
+        let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (inQ) {
+            if (ch === '"') {
+              if (line[i + 1] === '"') {
+                cur += '"';
+                i++;
+              } else {
+                inQ = false;
+              }
+            } else cur += ch;
+          } else {
+            if (ch === '"') inQ = true;
+            else if (ch === ",") {
+              out.push(cur);
+              cur = "";
+            } else cur += ch;
+          }
+        }
+        out.push(cur);
+        return out;
+      }
+
+      addBtn.addEventListener("click", () => openEdit(null));
+      resetBtn.addEventListener("click", () => {
+        if (confirm("Xoá dữ liệu đã lưu trong trình duyệt?")) {
+          localStorage.removeItem(KEY);
+          rows = EXAMPLE;
+          render();
+        }
+      });
+      runTestsBtn.addEventListener("click", runTests);
+
+      search.addEventListener("input", render);
+      statusFilter.addEventListener("change", render);
+      roomFilter.addEventListener("change", render);
+
+      // First paint
+      function setStickyTop() {
+        const h = document.querySelector("header");
+        const px = (h?.offsetHeight || 88) + "px";
+        document.documentElement.style.setProperty("--sticky-top", px);
+      }
+      setStickyTop();
+      new ResizeObserver(setStickyTop).observe(
+        document.querySelector("header")
+      );
+      window.addEventListener("resize", setStickyTop);
+
+      render();
+
+      /** -----------------------------
+       * TỰ KIỂM TRA (TESTS) – log ra console
+       * ----------------------------- */
+      function runTests() {
+        const results = [];
+        // Test 1: escapeHtml
+        const input1 = "<>'\"&";
+        const out1 = escapeHtml(input1);
+        results.push({
+          name: "escapeHtml",
+          pass: out1 === "&lt;&gt;&#39;&quot;&amp;",
+          got: out1,
+        });
+
+        // Test 2: parseCsv (EN headers)
+        const csv2 =
+          'room,model,cartridge,refillCnt,lastReplace,note\n"VP, Tầng 3",HP 1010,12A,1,2025-10-01,"ghi, chú"';
+        const p2 = parseCsv(csv2);
+        results.push({
+          name: "parseCsv EN headers",
+          pass:
+            p2.length === 1 &&
+            p2[0].room === "VP, Tầng 3" &&
+            p2[0].refillCnt === 1,
+        });
+
+        // Test 3: parseCsv (VI headers)
+        const csv3 =
+          "Phòng,Tên máy/Model,Mã hộp mực,Lần đổ mực,Ngày thay,Ghi chú\nKế toán,Canon 223dw,057,2,2025-09-20,ok";
+        const p3 = parseCsv(csv3);
+        results.push({
+          name: "parseCsv VI headers",
+          pass:
+            p3.length === 1 &&
+            p3[0].model === "Canon 223dw" &&
+            p3[0].refillCnt === 2,
+        });
+
+        // Test 4: export CSV newline
+        const headers = [
+          "id",
+          "room",
+          "model",
+          "cartridge",
+          "refillCnt",
+          "lastReplace",
+          "note",
+        ];
+        const csvOut = [headers.join(",")]
+          .concat(
+            [
+              {
+                id: "1",
+                room: "A",
+                model: "M",
+                cartridge: "C",
+                refillCnt: 0,
+                lastReplace: "",
+                note: "",
+              },
+            ].map((r) => headers.map((h) => csvCell(r[h])).join(","))
+          )
+          .join("\n");
+        results.push({ name: "export newline", pass: /\n/.test(csvOut) });
+
+        // Test 5: appendAll không gộp các dòng trùng model/room
+        const base = [];
+        const dupCsv = "room,model\nVăn phòng,HP 401\nVăn phòng,HP 401";
+        const parsedDup = parseCsv(dupCsv);
+        const merged = appendAll(base, parsedDup);
+        results.push({
+          name: "appendAll duplicate model/room",
+          pass: merged.length === 2,
+        });
+
+        // Test 6: xử lý trùng id trong lô mới
+        const sameId = genId();
+        const parsedWithId = [
+          { id: sameId, room: "A", model: "X" },
+          { id: sameId, room: "A", model: "X" },
+        ];
+        const merged2 = appendAll([], parsedWithId);
+        const uniqueIds = new Set(merged2.map((r) => r.id));
+        results.push({
+          name: "duplicate ids resolved",
+          pass: uniqueIds.size === 2,
+        });
+
+        console.table(results);
+        alert(
+          "Đã chạy tự kiểm tra. Mở Console (F12) > tab Console để xem kết quả chi tiết."
+        );
+      }
+    </script>
+  </body>
+</html>

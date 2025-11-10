@@ -1,0 +1,322 @@
+:root {
+  --bg: #0f172a; /* slate-900 */
+  --panel: #111827; /* gray-900 */
+  --muted: #94a3b8; /* slate-400 */
+  --text: #e5e7eb; /* gray-200 */
+  --primary: #22c55e; /* green-500 */
+  --primary-2: #16a34a; /* green-600 */
+  --warn: #f59e0b; /* amber-500 */
+  --danger: #ef4444; /* red-500 */
+  --accent: #38bdf8; /* sky-400 */
+  --row: #0b1220; /* darker row */
+  --chip: #1f2937; /* gray-800 */
+  --border: #1f2937; /* gray-800 */
+  --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: radial-gradient(
+      1200px 600px at 10% -20%,
+      rgba(56, 189, 248, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      1200px 600px at 80% -10%,
+      rgba(34, 197, 94, 0.08),
+      transparent
+    ),
+    var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
+    Noto Sans, sans-serif;
+  line-height: 1.5;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: saturate(1.1) blur(6px);
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid var(--border);
+}
+
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 20px;
+}
+
+.hero {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--primary));
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #0b1220;
+  box-shadow: var(--shadow);
+}
+h1 {
+  font-size: 22px;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+.sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  margin-top: 14px;
+}
+.filters,
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.input,
+.select,
+.button {
+  background: var(--chip);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.input {
+  min-width: 220px;
+}
+.select {
+  min-width: 160px;
+}
+.button {
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.04s ease, opacity 0.15s ease;
+}
+.button:hover {
+  opacity: 0.95;
+}
+.button:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border-color: transparent;
+  color: #081216;
+  font-weight: 600;
+}
+.btn-accent {
+  background: linear-gradient(135deg, var(--accent), #0284c7);
+  border-color: transparent;
+  color: #06131a;
+  font-weight: 600;
+}
+.btn-quiet {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.panel {
+  background: rgba(17, 24, 39, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+thead th {
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0), rgba(2, 6, 23, 0.35));
+  border-bottom: 1px solid var(--border);
+  padding: 12px 14px;
+  position: sticky;
+  top: var(--sticky-top, 88px);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px dashed var(--border);
+  font-size: 14px;
+}
+tbody tr:nth-child(odd) {
+  background: rgba(2, 6, 23, 0.25);
+}
+tbody tr:hover {
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+}
+.badge.ok {
+  border-color: #14532d;
+  background: rgba(16, 185, 129, 0.12);
+  color: #86efac;
+}
+.badge.warn {
+  border-color: #7c2d12;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fdba74;
+}
+.badge.danger {
+  border-color: #7f1d1d;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.tag {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+}
+.chip-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+  cursor: pointer;
+  font-size: 12px;
+}
+.chip-btn:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.footer {
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
+  padding: 18px 0 32px;
+}
+
+/* Date pill */
+.date-pill {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--chip);
+  font-size: 12px;
+}
+.date-pill.filled {
+  border-color: #14532d;
+  background: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+}
+
+/* Dialog */
+dialog {
+  border: none;
+  border-radius: 16px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  width: min(680px, 92vw);
+}
+dialog::backdrop {
+  background: rgba(2, 6, 23, 0.6);
+  backdrop-filter: blur(2px);
+}
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.dialog-body {
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+}
+.field label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.field input,
+.field select,
+.field textarea {
+  background: var(--chip);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 16px 16px;
+}
+
+@media (max-width: 820px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+  /* sticky top remains dynamic via --sticky-top */
+}
+thead th {
+  top: -12px;
+}
+
+#dropZone.dragover {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
