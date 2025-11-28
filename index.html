@@ -481,6 +481,15 @@
               >
                 GHI CHÚ
               </th>
+              <th
+                style="
+                  text-align: left;
+                  padding: 8px;
+                  border-bottom: 1px solid var(--border);
+                "
+              >
+                THAO TÁC
+              </th>
             </tr>
           </thead>
           <tbody id="historyTbody"></tbody>
@@ -744,16 +753,19 @@
         editDlg.close();
       };
 
-      /* ---- History dialog ---- */
-      function openHistory(id) {
-        const r = rows.find((x) => x.id === id);
+      /* ---- History helpers ---- */
+      function renderHistoryTable(printerId) {
+        const r = rows.find((x) => x.id === printerId);
         if (!r) return;
-        const list = Array.isArray(r.history)
-          ? r.history.slice().reverse()
-          : [];
+
         document.getElementById("historyTitle").textContent = `${
           r.room || ""
         } • ${r.model || ""}`;
+
+        const list = Array.isArray(r.history)
+          ? r.history.map((h, index) => ({ ...h, index })).reverse()
+          : [];
+
         document.getElementById("historyTbody").innerHTML = list
           .map((h) => {
             const label =
@@ -762,6 +774,7 @@
                 : h.action === "refill"
                 ? "Đổ mực"
                 : h.action || "";
+
             return `<tr>
           <td style="padding:8px;border-bottom:1px dashed var(--border)">${(
             h.ts || ""
@@ -770,10 +783,40 @@
           <td style="padding:8px;border-bottom:1px dashed var(--border)">${escapeHtml(
             h.note || ""
           )}</td>
+          <td style="padding:8px;border-bottom:1px dashed var(--border)">
+            <button class="chip-btn" onclick="deleteHistoryEntry('${r.id}', ${
+              h.index
+            })">Xoá</button>
+          </td>
         </tr>`;
           })
           .join("");
+      }
+
+      /* ---- History dialog ---- */
+      function openHistory(id) {
+        renderHistoryTable(id);
         historyDlg.showModal();
+      }
+
+      function deleteHistoryEntry(printerId, index) {
+        const printer = rows.find((x) => x.id === printerId);
+        if (!printer || !Array.isArray(printer.history)) return;
+
+        if (!confirm("Xoá dòng lịch sử này?")) return;
+
+        const newHistory = printer.history.slice();
+        if (index < 0 || index >= newHistory.length) return;
+
+        newHistory.splice(index, 1);
+
+        rows = rows.map((r) =>
+          r.id === printerId ? { ...r, history: newHistory } : r
+        );
+
+        save();
+        render();
+        renderHistoryTable(printerId);
       }
 
       /* ---- CSV import/export (append-all) ---- */
