@@ -191,6 +191,7 @@
       .badge {
         display: inline-flex;
         align-items: center;
+        width: max-content;
         gap: 6px;
         padding: 6px 10px;
         border-radius: 999px;
@@ -355,6 +356,35 @@
             <select id="roomFilter" class="select">
               <option value="all">Tất cả phòng/bộ phận</option>
             </select>
+
+            <!-- ✅ ADDED: Bộ lọc tháng/năm -->
+            <select
+              id="monthFilter"
+              class="select"
+              title="Lọc theo tháng thao tác"
+            >
+              <option value="all">Tất cả tháng</option>
+              <option value="1">Tháng 1</option>
+              <option value="2">Tháng 2</option>
+              <option value="3">Tháng 3</option>
+              <option value="4">Tháng 4</option>
+              <option value="5">Tháng 5</option>
+              <option value="6">Tháng 6</option>
+              <option value="7">Tháng 7</option>
+              <option value="8">Tháng 8</option>
+              <option value="9">Tháng 9</option>
+              <option value="10">Tháng 10</option>
+              <option value="11">Tháng 11</option>
+              <option value="12">Tháng 12</option>
+            </select>
+            <select
+              id="yearFilter"
+              class="select"
+              title="Lọc theo năm thao tác"
+            >
+              <option value="all">Tất cả năm</option>
+            </select>
+            <!-- ✅ ADDED: Bộ lọc tháng/năm -->
           </div>
           <div class="actions">
             <input type="file" id="csvInput" accept=".csv" hidden />
@@ -481,6 +511,15 @@
               >
                 GHI CHÚ
               </th>
+              <th
+                style="
+                  text-align: left;
+                  padding: 8px;
+                  border-bottom: 1px solid var(--border);
+                "
+              >
+                THAO TÁC
+              </th>
             </tr>
           </thead>
           <tbody id="historyTbody"></tbody>
@@ -542,6 +581,11 @@
       const exportHistoryBtn = document.getElementById("exportHistory");
       const addBtn = document.getElementById("addPrinter");
       const resetBtn = document.getElementById("resetData");
+
+      /* ✅ ADDED: Lọc tháng/năm */
+      const monthFilter = document.getElementById("monthFilter");
+      const yearFilter = document.getElementById("yearFilter");
+      /* ✅ ADDED: Lọc tháng/năm */
 
       const editDlg = document.getElementById("editDlg");
       const fRoom = document.getElementById("fRoom");
@@ -608,10 +652,76 @@
             .join("");
       }
 
+      /* ✅ ADDED: Helpers cho lọc tháng/năm + tự đổ danh sách năm */
+      function toDateSafe(iso) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      function hasActivityInSelectedMonthYear(printer) {
+        const m = monthFilter.value;
+        const y = yearFilter.value;
+
+        // Không chọn gì -> không lọc theo thời gian
+        if (m === "all" && y === "all") return true;
+
+        // Ưu tiên lịch sử (refill/replace)
+        const hist = Array.isArray(printer.history) ? printer.history : [];
+        for (const h of hist) {
+          const d = toDateSafe(h.ts);
+          if (!d) continue;
+          const hitM = m === "all" || d.getMonth() + 1 === Number(m);
+          const hitY = y === "all" || d.getFullYear() === Number(y);
+          if (hitM && hitY) return true;
+        }
+
+        // Fallback: nếu có lastReplace mà không có history (ví dụ import)
+        const lr = toDateSafe(printer.lastReplace);
+        if (lr) {
+          const hitM = m === "all" || lr.getMonth() + 1 === Number(m);
+          const hitY = y === "all" || lr.getFullYear() === Number(y);
+          if (hitM && hitY) return true;
+        }
+
+        return false;
+      }
+
+      function renderYearFilter() {
+        const cur = yearFilter.value;
+        const years = new Set();
+        years.add(new Date().getFullYear()); // luôn có năm hiện tại
+
+        rows.forEach((r) => {
+          const hist = Array.isArray(r.history) ? r.history : [];
+          hist.forEach((h) => {
+            const d = toDateSafe(h.ts);
+            if (d) years.add(d.getFullYear());
+          });
+
+          const lr = toDateSafe(r.lastReplace);
+          if (lr) years.add(lr.getFullYear());
+        });
+
+        const sorted = Array.from(years).sort((a, b) => b - a);
+        yearFilter.innerHTML =
+          '<option value="all">Tất cả năm</option>' +
+          sorted
+            .map(
+              (yy) =>
+                `<option value="${yy}" ${
+                  String(cur) === String(yy) ? "selected" : ""
+                }>${yy}</option>`
+            )
+            .join("");
+      }
+      /* ✅ ADDED: Helpers cho lọc tháng/năm + tự đổ danh sách năm */
+
       function render() {
         const q = (search.value || "").toLowerCase(),
           s = statusFilter.value,
           rf = roomFilter.value;
+
         const filtered = rows.filter((r) => {
           const st = statusOf(r).key;
           const hit = [r.room, r.model, r.cartridge]
@@ -620,7 +730,12 @@
             .includes(q);
           const hitRoom = rf === "all" || (r.room || "") === rf;
           const hitStatus = s === "all" || s === st;
-          return hit && hitRoom && hitStatus;
+
+          /* ✅ ADDED: Lọc theo tháng/năm thao tác (đổ/thay) */
+          const hitMonthYear = hasActivityInSelectedMonthYear(r);
+          /* ✅ ADDED: Lọc theo tháng/năm thao tác (đổ/thay) */
+
+          return hit && hitRoom && hitStatus && hitMonthYear;
         });
 
         tbody.innerHTML = filtered
@@ -659,6 +774,10 @@
           .join("");
 
         renderFilters();
+
+        /* ✅ ADDED: cập nhật danh sách năm (để chọn năm có dữ liệu) */
+        renderYearFilter();
+        /* ✅ ADDED: cập nhật danh sách năm (để chọn năm có dữ liệu) */
       }
 
       /* ---- Actions ---- */
@@ -744,16 +863,19 @@
         editDlg.close();
       };
 
-      /* ---- History dialog ---- */
-      function openHistory(id) {
-        const r = rows.find((x) => x.id === id);
+      /* ---- History helpers ---- */
+      function renderHistoryTable(printerId) {
+        const r = rows.find((x) => x.id === printerId);
         if (!r) return;
-        const list = Array.isArray(r.history)
-          ? r.history.slice().reverse()
-          : [];
+
         document.getElementById("historyTitle").textContent = `${
           r.room || ""
         } • ${r.model || ""}`;
+
+        const list = Array.isArray(r.history)
+          ? r.history.map((h, index) => ({ ...h, index })).reverse()
+          : [];
+
         document.getElementById("historyTbody").innerHTML = list
           .map((h) => {
             const label =
@@ -762,6 +884,7 @@
                 : h.action === "refill"
                 ? "Đổ mực"
                 : h.action || "";
+
             return `<tr>
           <td style="padding:8px;border-bottom:1px dashed var(--border)">${(
             h.ts || ""
@@ -770,10 +893,40 @@
           <td style="padding:8px;border-bottom:1px dashed var(--border)">${escapeHtml(
             h.note || ""
           )}</td>
+          <td style="padding:8px;border-bottom:1px dashed var(--border)">
+            <button class="chip-btn" onclick="deleteHistoryEntry('${r.id}', ${
+              h.index
+            })">Xoá</button>
+          </td>
         </tr>`;
           })
           .join("");
+      }
+
+      /* ---- History dialog ---- */
+      function openHistory(id) {
+        renderHistoryTable(id);
         historyDlg.showModal();
+      }
+
+      function deleteHistoryEntry(printerId, index) {
+        const printer = rows.find((x) => x.id === printerId);
+        if (!printer || !Array.isArray(printer.history)) return;
+
+        if (!confirm("Xoá dòng lịch sử này?")) return;
+
+        const newHistory = printer.history.slice();
+        if (index < 0 || index >= newHistory.length) return;
+
+        newHistory.splice(index, 1);
+
+        rows = rows.map((r) =>
+          r.id === printerId ? { ...r, history: newHistory } : r
+        );
+
+        save();
+        render();
+        renderHistoryTable(printerId);
       }
 
       /* ---- CSV import/export (append-all) ---- */
@@ -912,6 +1065,84 @@
         return out;
       }
 
+      /* ✅ ADDED: Xuất lịch sử ra CSV (Excel) theo filter Tháng/Năm */
+      function downloadCsv(content, filename) {
+        const blob = new Blob(["\uFEFF" + content], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function exportHistoryCsv() {
+        const m = monthFilter.value; // "all" or "1".."12"
+        const y = yearFilter.value; // "all" or "2025"...
+
+        const headers = [
+          "Phòng/Bộ phận",
+          "Tên máy/Model",
+          "Mã hộp mực",
+          "Thời điểm",
+          "Hành động",
+          "Ghi chú",
+        ];
+
+        const lines = [headers.map(csvCell).join(",")];
+
+        rows.forEach((r) => {
+          const hist = Array.isArray(r.history) ? r.history : [];
+          hist.forEach((h) => {
+            const d = toDateSafe(h.ts);
+            if (!d) return;
+
+            const hitM = m === "all" || d.getMonth() + 1 === Number(m);
+            const hitY = y === "all" || d.getFullYear() === Number(y);
+            if (!hitM || !hitY) return;
+
+            const action =
+              h.action === "replace"
+                ? "Thay hộp mực"
+                : h.action === "refill"
+                ? "Đổ mực"
+                : h.action || "";
+
+            lines.push(
+              [
+                r.room || "",
+                r.model || "",
+                r.cartridge || "",
+                h.ts || "",
+                action,
+                h.note || "",
+              ]
+                .map(csvCell)
+                .join(",")
+            );
+          });
+        });
+
+        if (lines.length === 1) {
+          alert("Không có dữ liệu lịch sử trong Tháng/Năm đã chọn để xuất.");
+          return;
+        }
+
+        const yPart = y === "all" ? "tat_ca_nam" : y;
+        const mPart =
+          m === "all" ? "tat_ca_thang" : `thang_${String(m).padStart(2, "0")}`;
+        const filename = `lich_su_do_thay_muc_${mPart}_${yPart}.csv`;
+
+        downloadCsv(lines.join("\n"), filename);
+      }
+
+      exportHistoryBtn.addEventListener("click", exportHistoryCsv);
+      /* ✅ ADDED: Xuất lịch sử ra CSV (Excel) theo filter Tháng/Năm */
+
       /* ---- Page init ---- */
       addBtn.addEventListener("click", () => openEdit(null));
       resetBtn.addEventListener("click", () => {
@@ -924,6 +1155,11 @@
       search.addEventListener("input", render);
       statusFilter.addEventListener("change", render);
       roomFilter.addEventListener("change", render);
+
+      /* ✅ ADDED: lắng nghe thay đổi tháng/năm -> lọc lại bảng */
+      monthFilter.addEventListener("change", render);
+      yearFilter.addEventListener("change", render);
+      /* ✅ ADDED: lắng nghe thay đổi tháng/năm -> lọc lại bảng */
 
       function setStickyTop() {
         const h = document.querySelector("header");
