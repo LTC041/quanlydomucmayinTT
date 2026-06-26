@@ -417,3 +417,52 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-bottom-width: 2px;
   .mobile-card .action-btn.history .action-label::after { content: ""; }
   .mobile-card .action-btn.history span[aria-hidden="true"] { font-size: 14px; }
 }
+/* =========================================================
+   SỬA LỖI HÀNG TIÊU ĐỀ BẢNG ĐÈ LÊN DỮ LIỆU KHI CUỘN
+   Không dùng sticky cho tiêu đề bảng để tránh bị chèn giữa dòng.
+   ========================================================= */
+
+.desktop-table-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tắt hoàn toàn sticky của tiêu đề bảng */
+.data-table thead,
+.data-table thead tr,
+.data-table thead th {
+  position: static !important;
+  top: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+  transform: none !important;
+}
+
+/* Giữ nền tiêu đề rõ ràng, không bị trong suốt */
+.data-table thead th {
+  background: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+/* Không để hàng dữ liệu bị che hoặc tạo khoảng trống bất thường */
+.data-table tbody::before,
+.data-table tbody::after {
+  display: none !important;
+  content: none !important;
+  height: 0 !important;
+}
+
+/* Khi rê chuột vào dòng dữ liệu, không ảnh hưởng vùng tiêu đề */
+.data-table tbody tr:hover td {
+  position: static;
+}
+
+/* Cột thao tác không ghim cố định, tránh che cột Trạng thái */
+.data-table th:last-child,
+.data-table td:last-child {
+  position: static !important;
+  right: auto !important;
+  z-index: auto !important;
+  box-shadow: none !important;
+}
