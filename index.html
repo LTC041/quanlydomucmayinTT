@@ -1,1179 +1,273 @@
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quản lý thay/đổ mực máy in</title>
-    <style>
-      :root {
-        --bg: #0f172a;
-        --panel: #111827;
-        --muted: #94a3b8;
-        --text: #e5e7eb;
-        --primary: #22c55e;
-        --primary-2: #16a34a;
-        --warn: #f59e0b;
-        --danger: #ef4444;
-        --accent: #38bdf8;
-        --row: #0b1220;
-        --chip: #1f2937;
-        --border: #1f2937;
-        --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-        --radius: 16px;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        height: 100%;
-      }
-      body {
-        margin: 0;
-        background: radial-gradient(
-            1200px 600px at 10% -20%,
-            rgba(56, 189, 248, 0.08),
-            transparent
-          ),
-          radial-gradient(
-            1200px 600px at 80% -10%,
-            rgba(34, 197, 94, 0.08),
-            transparent
-          ),
-          var(--bg);
-        color: var(--text);
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
-          Cantarell, Noto Sans, sans-serif;
-        line-height: 1.5;
-      }
-      header {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        backdrop-filter: saturate(1.1) blur(6px);
-        background: rgba(15, 23, 42, 0.6);
-        border-bottom: 1px solid var(--border);
-      }
-      .wrap {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 16px 20px;
-      }
-      .hero {
-        display: flex;
-        gap: 16px;
-        align-items: center;
-      }
-      .logo {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, var(--accent), var(--primary));
-        display: grid;
-        place-items: center;
-        font-weight: 800;
-        color: #0b1220;
-        box-shadow: var(--shadow);
-      }
-      h1 {
-        font-size: 22px;
-        margin: 0;
-        letter-spacing: 0.2px;
-      }
-      .sub {
-        color: var(--muted);
-        font-size: 13px;
-        margin-top: 2px;
-      }
-      .toolbar {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 12px;
-        margin-top: 14px;
-      }
-      .filters,
-      .actions {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .input,
-      .select,
-      .button {
-        background: var(--chip);
-        color: var(--text);
-        border: 1px solid var(--border);
-        padding: 10px 12px;
-        border-radius: 10px;
-        font-size: 14px;
-      }
-      .input {
-        min-width: 220px;
-      }
-      .select {
-        min-width: 160px;
-      }
-      .button {
-        cursor: pointer;
-        user-select: none;
-        transition: transform 0.04s ease, opacity 0.15s ease;
-      }
-      .button:hover {
-        opacity: 0.95;
-      }
-      .button:active {
-        transform: translateY(1px);
-      }
-      .btn-primary {
-        background: linear-gradient(135deg, var(--primary), var(--primary-2));
-        border-color: transparent;
-        color: #081216;
-        font-weight: 600;
-      }
-      .btn-accent {
-        background: linear-gradient(135deg, var(--accent), #0284c7);
-        border-color: transparent;
-        color: #06131a;
-        font-weight: 600;
-      }
-      .btn-quiet {
-        background: transparent;
-        border-color: var(--border);
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="description" content="Quản lý lịch sử đổ và thay hộp mực máy in" />
+  <title>Quản lý mực máy in</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#mainContent">Bỏ qua điều hướng</a>
 
-      .panel {
-        background: rgba(17, 24, 39, 0.7);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        overflow: hidden;
-        margin-top: 16px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-
-      /* ✅ Sticky CHỈ cho bảng chính */
-      #table thead th {
-        text-align: left;
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--muted);
-        background: rgba(2, 6, 23, 0.95); /* đậm hơn để không thấy hàng dưới */
-        border-bottom: 1px solid var(--border);
-        padding: 12px 14px;
-        position: sticky;
-        top: var(--sticky-top);
-        backdrop-filter: blur(6px);
-        z-index: 6;
-      }
-      /* Đệm để hàng đầu không bị che */
-      #table tbody::before {
-        content: "";
-        display: block;
-        height: calc(var(--sticky-top) + 4px);
-      }
-
-      tbody td {
-        padding: 12px 14px;
-        border-bottom: 1px dashed var(--border);
-        font-size: 14px;
-      }
-      tbody tr:nth-child(odd) {
-        background: rgba(2, 6, 23, 0.25);
-      }
-      tbody tr:hover {
-        background: rgba(56, 189, 248, 0.06);
-      }
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        width: max-content;
-        gap: 6px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        border: 1px solid var(--border);
-        background: var(--chip);
-      }
-      .badge.ok {
-        border-color: #14532d;
-        background: rgba(16, 185, 129, 0.12);
-        color: #86efac;
-      }
-      .badge.warn {
-        border-color: #7c2d12;
-        background: rgba(245, 158, 11, 0.12);
-        color: #fdba74;
-      }
-      .badge.danger {
-        border-color: #7f1d1d;
-        background: rgba(239, 68, 68, 0.12);
-        color: #fca5a5;
-      }
-      .tag {
-        font-size: 12px;
-        color: var(--muted);
-      }
-      .row-actions {
-        display: flex;
-        gap: 6px;
-      }
-      .chip-btn {
-        padding: 6px 10px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: var(--chip);
-        cursor: pointer;
-        font-size: 12px;
-      }
-      .chip-btn:hover {
-        background: rgba(56, 189, 248, 0.08);
-      }
-      .footer {
-        color: var(--muted);
-        text-align: center;
-        font-size: 12px;
-        padding: 18px 0 32px;
-      }
-
-      /* Pill xanh cho ngày thay */
-      .date-pill {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: var(--chip);
-        font-size: 12px;
-      }
-      .date-pill.filled {
-        border-color: #14532d;
-        background: rgba(34, 197, 94, 0.18);
-        color: #bbf7d0;
-      }
-
-      /* ❌ KHÔNG sticky cho bảng trong dialog */
-      dialog thead th {
-        position: static !important;
-        top: auto !important;
-        backdrop-filter: none !important;
-        background: var(--chip) !important;
-      }
-
-      dialog {
-        border: none;
-        border-radius: 16px;
-        background: var(--panel);
-        color: var(--text);
-        box-shadow: var(--shadow);
-        width: min(680px, 92vw);
-      }
-      dialog::backdrop {
-        background: rgba(2, 6, 23, 0.6);
-        backdrop-filter: blur(2px);
-      }
-      .dialog-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--border);
-      }
-      .dialog-body {
-        padding: 16px;
-        display: grid;
-        gap: 10px;
-      }
-      .grid-2 {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-      }
-      .field {
-        display: grid;
-        gap: 6px;
-      }
-      .field label {
-        font-size: 12px;
-        color: var(--muted);
-      }
-      .field input,
-      .field select,
-      .field textarea {
-        background: var(--chip);
-        color: var(--text);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 10px 12px;
-        font-size: 14px;
-      }
-      .dialog-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        padding: 0 16px 16px;
-      }
-
-      @media (max-width: 820px) {
-        .grid-2 {
-          grid-template-columns: 1fr;
-        }
-      }
-      #dropZone.dragover {
-        outline: 2px dashed var(--accent);
-        outline-offset: -6px;
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <div class="wrap">
-        <div class="hero">
-          <div class="logo">🖨️</div>
+  <header class="topbar" id="topbar">
+    <div class="shell">
+      <div class="topbar-main">
+        <div class="brand" aria-label="Quản lý mực máy in">
+          <div class="brand-icon" aria-hidden="true">🖨️</div>
           <div>
-            <h1>Quản lý thay/đổ mực máy in</h1>
-            <div class="sub">
-              Mỗi 2 lần đổ mực → thay hộp mực. Theo dõi & lưu lịch sử thao tác.
+            <p class="eyebrow">CÔNG CỤ VẬN HÀNH</p>
+            <h1>Quản lý mực máy in</h1>
+            <p class="brand-subtitle">Theo dõi đổ mực, thay hộp mực và lịch sử thiết bị theo từng bộ phận.</p>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="icon-button" id="themeToggle" type="button" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện sáng/tối">
+            <span id="themeIcon" aria-hidden="true">☾</span>
+          </button>
+          <button class="button button-primary" id="addPrinter" type="button">
+            <span aria-hidden="true">＋</span><span>Thêm máy in</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="command-bar" aria-label="Thao tác dữ liệu">
+        <div class="command-bar-left">
+          <label class="search-box" for="search">
+            <span aria-hidden="true">⌕</span>
+            <input id="search" type="search" placeholder="Tìm phòng, mã máy, model hoặc mã mực..." autocomplete="off" />
+            <kbd>⌘ K</kbd>
+          </label>
+        </div>
+
+        <div class="command-bar-right">
+          <input id="importInput" type="file" accept=".csv,text/csv" hidden />
+          <button class="button button-secondary" id="importBtn" type="button"><span aria-hidden="true">⇧</span> Nhập CSV</button>
+          <button class="button button-secondary" id="exportExcelBtn" type="button"><span aria-hidden="true">⇩</span> Xuất Excel</button>
+          <div class="menu-wrap">
+            <button class="button button-ghost" id="moreBtn" type="button" aria-expanded="false" aria-controls="moreMenu">Thêm <span aria-hidden="true">⌄</span></button>
+            <div class="dropdown-menu" id="moreMenu" hidden>
+              <button type="button" data-menu-action="download-template">Tải mẫu nhập CSV</button>
+              <button type="button" data-menu-action="backup">Sao lưu dữ liệu (.json)</button>
+              <label class="menu-file-label">Khôi phục từ bản sao lưu<input id="restoreInput" type="file" accept=".json,application/json" hidden /></label>
+              <button type="button" data-menu-action="settings">Thiết lập ngưỡng thay mực</button>
+              <button type="button" class="danger-menu" data-menu-action="reset">Xóa toàn bộ dữ liệu</button>
             </div>
           </div>
         </div>
-        <div class="toolbar">
-          <div class="filters">
-            <input
-              id="search"
-              class="input"
-              placeholder="Tìm theo phòng, model, mã mực..."
-            />
-            <select id="statusFilter" class="select">
-              <option value="all">Tất cả trạng thái</option>
-              <option value="ok">Đang bình thường</option>
-              <option value="warn">Cần lưu ý (1 lần đổ)</option>
-              <option value="danger">Đến hạn thay (≥ 2)</option>
-            </select>
-            <select id="roomFilter" class="select">
-              <option value="all">Tất cả phòng/bộ phận</option>
-            </select>
-
-            <!-- ✅ ADDED: Bộ lọc tháng/năm -->
-            <select
-              id="monthFilter"
-              class="select"
-              title="Lọc theo tháng thao tác"
-            >
-              <option value="all">Tất cả tháng</option>
-              <option value="1">Tháng 1</option>
-              <option value="2">Tháng 2</option>
-              <option value="3">Tháng 3</option>
-              <option value="4">Tháng 4</option>
-              <option value="5">Tháng 5</option>
-              <option value="6">Tháng 6</option>
-              <option value="7">Tháng 7</option>
-              <option value="8">Tháng 8</option>
-              <option value="9">Tháng 9</option>
-              <option value="10">Tháng 10</option>
-              <option value="11">Tháng 11</option>
-              <option value="12">Tháng 12</option>
-            </select>
-            <select
-              id="yearFilter"
-              class="select"
-              title="Lọc theo năm thao tác"
-            >
-              <option value="all">Tất cả năm</option>
-            </select>
-            <!-- ✅ ADDED: Bộ lọc tháng/năm -->
-          </div>
-          <div class="actions">
-            <input type="file" id="csvInput" accept=".csv" hidden />
-            <label for="csvInput" class="button btn-accent">Nhập CSV</label>
-            <button id="exportCsv" class="button btn-quiet">Xuất CSV</button>
-            <button
-              id="exportHistory"
-              class="button btn-quiet"
-              title="Xuất nhật ký đổ/thay"
-            >
-              Xuất lịch sử
-            </button>
-            <button id="addPrinter" class="button btn-primary">
-              + Thêm máy in
-            </button>
-            <button id="resetData" class="button btn-quiet">Đặt lại</button>
-          </div>
-        </div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main class="wrap">
-      <div
-        class="panel"
-        id="dropZone"
-        title="Kéo & thả CSV vào đây để nhập dữ liệu"
-      >
-        <table id="table">
+  <main class="shell page" id="mainContent">
+    <section class="summary-grid" aria-label="Tổng quan thiết bị">
+      <button class="summary-card is-active" type="button" data-status-card="all" aria-pressed="true">
+        <span class="summary-label">Tổng số máy</span>
+        <strong id="countAll">0</strong>
+        <span class="summary-hint" id="resultInfo">Chưa có dữ liệu</span>
+      </button>
+      <button class="summary-card status-ok" type="button" data-status-card="ok" aria-pressed="false">
+        <span class="summary-label">Đang bình thường</span>
+        <strong id="countOk">0</strong>
+        <span class="summary-hint">Chưa cần xử lý</span>
+      </button>
+      <button class="summary-card status-warn" type="button" data-status-card="warn" aria-pressed="false">
+        <span class="summary-label">Cần lưu ý</span>
+        <strong id="countWarn">0</strong>
+        <span class="summary-hint">Đã đổ 1 lần</span>
+      </button>
+      <button class="summary-card status-danger" type="button" data-status-card="danger" aria-pressed="false">
+        <span class="summary-label">Đến hạn thay</span>
+        <strong id="countDanger">0</strong>
+        <span class="summary-hint" id="thresholdHint">Từ 2 lần đổ</span>
+      </button>
+    </section>
+
+    <section class="filter-panel" aria-label="Bộ lọc danh sách máy in">
+      <div class="filter-panel-heading">
+        <div>
+          <h2>Danh sách máy in</h2>
+          <p>Danh sách được tự động lưu trên trình duyệt của thiết bị này.</p>
+        </div>
+        <button class="text-button" id="clearFilters" type="button">Xóa bộ lọc</button>
+      </div>
+      <div class="filter-grid">
+        <label class="field compact-field">
+          <span>Trạng thái</span>
+          <select id="statusFilter">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="ok">Đang bình thường</option>
+            <option value="warn">Cần lưu ý (1 lần đổ)</option>
+            <option value="danger">Đến hạn thay</option>
+          </select>
+        </label>
+        <label class="field compact-field">
+          <span>Phòng / bộ phận</span>
+          <select id="roomFilter"><option value="all">Tất cả phòng / bộ phận</option></select>
+        </label>
+        <label class="field compact-field">
+          <span>Tháng phát sinh</span>
+          <select id="monthFilter">
+            <option value="all">Tất cả tháng</option>
+            <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+          </select>
+        </label>
+        <label class="field compact-field">
+          <span>Năm phát sinh</span>
+          <select id="yearFilter"><option value="all">Tất cả năm</option></select>
+        </label>
+        <label class="field compact-field">
+          <span>Sắp xếp</span>
+          <select id="sortBy">
+            <option value="priority">Ưu tiên cần xử lý</option>
+            <option value="updated">Cập nhật gần nhất</option>
+            <option value="room">Phòng / bộ phận A–Z</option>
+            <option value="model">Tên máy A–Z</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="list-section" id="dropZone" aria-label="Danh sách thiết bị" tabindex="0">
+      <div class="drop-hint" id="dropHint" aria-live="polite">Kéo tệp CSV vào đây để nhập dữ liệu</div>
+      <div class="desktop-table-wrap">
+        <table class="data-table" id="printerTable">
           <thead>
             <tr>
-              <th style="width: 44px">#</th>
-              <th>Phòng/Bộ phận</th>
-              <th>Tên máy/Model</th>
-              <th>Mã hộp mực</th>
-              <th>Lần đổ mực (từ lần thay gần nhất)</th>
-              <th>Lần thay gần nhất</th>
-              <th>Ghi chú</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-              <th>Lịch sử</th>
+              <th scope="col" class="col-index">#</th>
+              <th scope="col">Phòng / bộ phận</th>
+              <th scope="col">Mã quản lý</th>
+              <th scope="col">Tên máy / Model</th>
+              <th scope="col">Mã hộp mực</th>
+              <th scope="col" class="center">Số lần đổ</th>
+              <th scope="col">Lần thay gần nhất</th>
+              <th scope="col">Cập nhật gần nhất</th>
+              <th scope="col">Trạng thái</th>
+              <th scope="col" class="action-column">Thao tác</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div class="tag" style="margin-top: 8px">
-        Mẹo: Import CSV sẽ <b>không gộp</b> dòng trùng — mỗi dòng CSV = 1 dòng
-        dữ liệu.
+      <div class="mobile-card-list" id="mobileList"></div>
+      <div class="empty-state" id="emptyState" hidden>
+        <div class="empty-icon" aria-hidden="true">🖨️</div>
+        <h3>Chưa có máy in phù hợp</h3>
+        <p>Thêm máy in đầu tiên hoặc điều chỉnh bộ lọc để xem dữ liệu.</p>
+        <button class="button button-primary" id="emptyAddBtn" type="button">＋ Thêm máy in</button>
       </div>
-      <div class="footer">
-        Dữ liệu lưu cục bộ (localStorage). Có thể xuất CSV danh sách và CSV lịch
-        sử để lưu trữ.
-      </div>
-    </main>
+    </section>
 
-    <!-- Dialog thêm/sửa -->
-    <dialog id="editDlg">
-      <div class="dialog-head">
-        <strong id="dlgTitle">Máy in</strong>
-        <button class="chip-btn" onclick="editDlg.close()">Đóng</button>
-      </div>
-      <div class="dialog-body">
-        <div class="grid-2">
-          <div class="field">
-            <label>Phòng/Bộ phận</label><input id="fRoom" />
-          </div>
-          <div class="field">
-            <label>Tên máy/Model</label><input id="fModel" />
-          </div>
-          <div class="field">
-            <label>Mã hộp mực</label><input id="fCartridge" />
-          </div>
-          <div class="field">
-            <label>Lần đổ mực (từ lần thay gần nhất)</label
-            ><input id="fRefillCnt" type="number" min="0" />
-          </div>
-          <div class="field">
-            <label>Ngày thay gần nhất</label
-            ><input id="fLastReplace" type="date" />
-          </div>
-          <div class="field"><label>Ghi chú</label><input id="fNote" /></div>
+    <footer class="app-footer">
+      <span class="save-indicator"><i aria-hidden="true"></i> Dữ liệu đã lưu cục bộ</span>
+      <span>Xuất Excel gồm: Tổng quan, Danh sách máy in, Lịch sử và Hướng dẫn.</span>
+    </footer>
+  </main>
+
+  <datalist id="roomsList"></datalist>
+
+  <dialog class="modal" id="editDialog">
+    <form method="dialog" id="printerForm" novalidate>
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow" id="editKicker">THIẾT BỊ</p>
+          <h2 id="editTitle">Thêm máy in</h2>
         </div>
+        <button class="icon-button" value="cancel" type="button" data-close-dialog="editDialog" aria-label="Đóng">×</button>
       </div>
-      <div class="dialog-actions">
-        <button id="saveRow" class="button btn-primary">Lưu</button>
-      </div>
-    </dialog>
-
-    <!-- Dialog lịch sử -->
-    <dialog id="historyDlg">
-      <div class="dialog-head">
-        <strong>Lịch sử thao tác</strong>
-        <button class="chip-btn" onclick="historyDlg.close()">Đóng</button>
-      </div>
-      <div class="dialog-body">
-        <div id="historyTitle" class="tag"></div>
-        <table style="width: 100%; border-collapse: collapse">
-          <thead>
-            <tr>
-              <th
-                style="
-                  text-align: left;
-                  padding: 8px;
-                  border-bottom: 1px solid var(--border);
-                "
-              >
-                THỜI ĐIỂM
-              </th>
-              <th
-                style="
-                  text-align: left;
-                  padding: 8px;
-                  border-bottom: 1px solid var(--border);
-                "
-              >
-                HÀNH ĐỘNG
-              </th>
-              <th
-                style="
-                  text-align: left;
-                  padding: 8px;
-                  border-bottom: 1px solid var(--border);
-                "
-              >
-                GHI CHÚ
-              </th>
-              <th
-                style="
-                  text-align: left;
-                  padding: 8px;
-                  border-bottom: 1px solid var(--border);
-                "
-              >
-                THAO TÁC
-              </th>
-            </tr>
-          </thead>
-          <tbody id="historyTbody"></tbody>
-        </table>
-        <div class="tag" style="margin-top: 8px">
-          * Hệ thống tự ghi nhận mỗi lần bấm <b>+ Đổ</b> hoặc <b>✓ Thay</b>.
+      <div class="modal-body">
+        <div class="form-grid">
+          <label class="field"><span>Phòng / bộ phận <b>*</b></span><select id="fRoom" required aria-label="Chọn phòng hoặc bộ phận"><option value="">— Chọn phòng / bộ phận —</option></select></label>
+          <label class="field"><span>Mã quản lý / vị trí</span><input id="fAssetCode" maxlength="80" placeholder="Ví dụ: MIP-KH-01" /></label>
+          <label class="field"><span>Tên máy / Model <b>*</b></span><input id="fModel" required maxlength="160" placeholder="Ví dụ: HP LaserJet Pro M404dn" /></label>
+          <label class="field"><span>Mã hộp mực</span><input id="fCartridge" maxlength="100" placeholder="Ví dụ: CF258A (có thể để trống)" /></label>
+          <label class="field"><span>Số lần đổ mực từ lần thay gần nhất</span><input id="fRefillCnt" type="number" min="0" max="99" value="0" inputmode="numeric" /></label>
+          <label class="field"><span>Ngày thay hộp mực gần nhất</span><input id="fLastReplace" type="date" /></label>
+          <label class="field form-span-2"><span>Ghi chú</span><textarea id="fNote" maxlength="500" rows="3" placeholder="Tình trạng, lưu ý kỹ thuật hoặc thông tin cần theo dõi..."></textarea></label>
         </div>
+        <p class="form-help"><b>*</b> Các trường bắt buộc: Phòng / bộ phận và Tên máy / Model. Mã hộp mực có thể để trống và bổ sung sau.</p>
+        <p class="form-error" id="formError" role="alert" hidden></p>
       </div>
-    </dialog>
+      <div class="modal-footer">
+        <button class="button button-ghost" value="cancel" type="button" data-close-dialog="editDialog">Hủy</button>
+        <button class="button button-primary" type="submit">Lưu thông tin</button>
+      </div>
+    </form>
+  </dialog>
 
-    <script>
-      const KEY = "printer-toner-tracker:v1";
-      const EXAMPLE = [
-        {
-          id: genId(),
-          room: "Văn phòng",
-          model: "HP LaserJet Pro M404",
-          cartridge: "CF258A",
-          refillCnt: 0,
-          lastReplace: "",
-          note: "",
-          history: [],
-        },
-        {
-          id: genId(),
-          room: "Phòng Kế toán",
-          model: "Canon LBP 223dw",
-          cartridge: "057/057H",
-          refillCnt: 1,
-          lastReplace: "2025-06-01",
-          note: "Đã đổ 1 lần",
-          history: [{ ts: "2025-06-01", action: "replace", note: "Khởi tạo" }],
-        },
-        {
-          id: genId(),
-          room: "Phòng Kỹ thuật",
-          model: "Brother HL-L2375DW",
-          cartridge: "TN-2385",
-          refillCnt: 2,
-          lastReplace: "2025-05-15",
-          note: "Đến hạn thay",
-          history: [{ ts: "2025-05-15", action: "replace" }],
-        },
-      ];
+  <dialog class="modal modal-wide" id="historyDialog">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">NHẬT KÝ THIẾT BỊ</p>
+        <h2 id="historyTitle">Lịch sử thao tác</h2>
+        <p class="modal-subtitle" id="historySubtitle"></p>
+      </div>
+      <button class="icon-button" type="button" data-close-dialog="historyDialog" aria-label="Đóng">×</button>
+    </div>
+    <div class="modal-body history-body">
+      <div class="history-summary" id="historySummary"></div>
+      <div class="history-list" id="historyList"></div>
+      <div class="empty-mini" id="historyEmpty" hidden>Chưa có nhật ký thao tác cho máy in này.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="button button-ghost" type="button" data-close-dialog="historyDialog">Đóng</button>
+    </div>
+  </dialog>
 
-      let rows = load().map((r) => ({
-        ...r,
-        history: Array.isArray(r.history) ? r.history : [],
-      }));
-      let editingId = null;
+  <dialog class="modal" id="importDialog">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">NHẬP DỮ LIỆU</p>
+        <h2>Sẵn sàng nhập tệp CSV</h2>
+      </div>
+      <button class="icon-button" type="button" data-close-dialog="importDialog" aria-label="Đóng">×</button>
+    </div>
+    <div class="modal-body">
+      <p id="importDescription" class="modal-subtitle"></p>
+      <label class="choice-card"><input type="radio" name="importMode" value="append" checked /><span><b>Bổ sung thêm dữ liệu</b><small>Giữ nguyên các dòng hiện có; thêm toàn bộ dòng từ tệp.</small></span></label>
+      <label class="choice-card"><input type="radio" name="importMode" value="merge" /><span><b>Cập nhật dòng trùng</b><small>Đối chiếu theo Mã quản lý; nếu không có mã, đối chiếu Phòng + Model + Mã mực.</small></span></label>
+      <p class="form-help">Tệp CSV hỗ trợ các cột: Phòng/Bộ phận, Mã quản lý, Tên máy/Model, Mã hộp mực, Lần đổ mực, Ngày thay gần nhất, Ghi chú.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="button button-ghost" type="button" data-close-dialog="importDialog">Hủy</button>
+      <button class="button button-primary" id="confirmImport" type="button">Nhập dữ liệu</button>
+    </div>
+  </dialog>
 
-      const tbody = document.getElementById("tbody");
-      const search = document.getElementById("search");
-      const statusFilter = document.getElementById("statusFilter");
-      const roomFilter = document.getElementById("roomFilter");
-      const csvInput = document.getElementById("csvInput");
-      const dropZone = document.getElementById("dropZone");
-      const exportBtn = document.getElementById("exportCsv");
-      const exportHistoryBtn = document.getElementById("exportHistory");
-      const addBtn = document.getElementById("addPrinter");
-      const resetBtn = document.getElementById("resetData");
+  <dialog class="modal" id="settingsDialog">
+    <form method="dialog" id="settingsForm" novalidate>
+      <div class="modal-header">
+        <div><p class="eyebrow">THIẾT LẬP</p><h2>Ngưỡng thay hộp mực</h2></div>
+        <button class="icon-button" type="button" data-close-dialog="settingsDialog" aria-label="Đóng">×</button>
+      </div>
+      <div class="modal-body">
+        <label class="field"><span>Số lần đổ mực tối đa trước khi thay</span><input id="fThreshold" type="number" min="1" max="10" inputmode="numeric" /></label>
+        <p class="form-help">Ví dụ: nhập 2 nghĩa là máy được đánh dấu “Đến hạn thay” từ lần đổ mực thứ 2.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="button button-ghost" type="button" data-close-dialog="settingsDialog">Hủy</button>
+        <button class="button button-primary" type="submit">Lưu thiết lập</button>
+      </div>
+    </form>
+  </dialog>
 
-      /* ✅ ADDED: Lọc tháng/năm */
-      const monthFilter = document.getElementById("monthFilter");
-      const yearFilter = document.getElementById("yearFilter");
-      /* ✅ ADDED: Lọc tháng/năm */
+  <dialog class="modal modal-confirm" id="confirmDialog">
+    <div class="modal-body confirm-body">
+      <div class="confirm-icon" id="confirmIcon" aria-hidden="true">?</div>
+      <div><h2 id="confirmTitle">Xác nhận thao tác</h2><p id="confirmMessage"></p></div>
+    </div>
+    <div class="modal-footer">
+      <button class="button button-ghost" id="confirmCancel" type="button">Hủy</button>
+      <button class="button button-danger" id="confirmAccept" type="button">Xác nhận</button>
+    </div>
+  </dialog>
 
-      const editDlg = document.getElementById("editDlg");
-      const fRoom = document.getElementById("fRoom");
-      const fModel = document.getElementById("fModel");
-      const fCartridge = document.getElementById("fCartridge");
-      const fRefillCnt = document.getElementById("fRefillCnt");
-      const fLastReplace = document.getElementById("fLastReplace");
-      const fNote = document.getElementById("fNote");
-
-      const historyDlg = document.getElementById("historyDlg");
-
-      /* ---- Utils ---- */
-      function genId() {
-        return crypto && crypto.randomUUID
-          ? crypto.randomUUID()
-          : "id-" +
-              Math.random().toString(36).slice(2) +
-              Date.now().toString(36);
-      }
-      function load() {
-        try {
-          const raw = localStorage.getItem(KEY);
-          if (!raw) return EXAMPLE;
-          const p = JSON.parse(raw);
-          return Array.isArray(p) ? p : EXAMPLE;
-        } catch {
-          return EXAMPLE;
-        }
-      }
-      function save() {
-        localStorage.setItem(KEY, JSON.stringify(rows));
-      }
-      function escapeHtml(s = "") {
-        const map = {
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        };
-        return String(s).replace(/[&<>"']/g, (ch) => map[ch]);
-      }
-      function statusOf(r) {
-        const c = Number(r.refillCnt || 0);
-        if (c >= 2) return { key: "danger", text: "Đến hạn thay" };
-        if (c === 1) return { key: "warn", text: "Cần lưu ý (1 lần đổ)" };
-        return { key: "ok", text: "Đang bình thường" };
-      }
-
-      function renderFilters() {
-        const rooms = Array.from(
-          new Set(rows.map((r) => (r.room || "").trim()).filter(Boolean))
-        ).sort();
-        const cur = roomFilter.value;
-        roomFilter.innerHTML =
-          '<option value="all">Tất cả phòng/bộ phận</option>' +
-          rooms
-            .map(
-              (r) =>
-                `<option ${cur === r ? "selected" : ""}>${escapeHtml(
-                  r
-                )}</option>`
-            )
-            .join("");
-      }
-
-      /* ✅ ADDED: Helpers cho lọc tháng/năm + tự đổ danh sách năm */
-      function toDateSafe(iso) {
-        if (!iso) return null;
-        const d = new Date(iso);
-        return isNaN(d.getTime()) ? null : d;
-      }
-
-      function hasActivityInSelectedMonthYear(printer) {
-        const m = monthFilter.value;
-        const y = yearFilter.value;
-
-        // Không chọn gì -> không lọc theo thời gian
-        if (m === "all" && y === "all") return true;
-
-        // Ưu tiên lịch sử (refill/replace)
-        const hist = Array.isArray(printer.history) ? printer.history : [];
-        for (const h of hist) {
-          const d = toDateSafe(h.ts);
-          if (!d) continue;
-          const hitM = m === "all" || d.getMonth() + 1 === Number(m);
-          const hitY = y === "all" || d.getFullYear() === Number(y);
-          if (hitM && hitY) return true;
-        }
-
-        // Fallback: nếu có lastReplace mà không có history (ví dụ import)
-        const lr = toDateSafe(printer.lastReplace);
-        if (lr) {
-          const hitM = m === "all" || lr.getMonth() + 1 === Number(m);
-          const hitY = y === "all" || lr.getFullYear() === Number(y);
-          if (hitM && hitY) return true;
-        }
-
-        return false;
-      }
-
-      function renderYearFilter() {
-        const cur = yearFilter.value;
-        const years = new Set();
-        years.add(new Date().getFullYear()); // luôn có năm hiện tại
-
-        rows.forEach((r) => {
-          const hist = Array.isArray(r.history) ? r.history : [];
-          hist.forEach((h) => {
-            const d = toDateSafe(h.ts);
-            if (d) years.add(d.getFullYear());
-          });
-
-          const lr = toDateSafe(r.lastReplace);
-          if (lr) years.add(lr.getFullYear());
-        });
-
-        const sorted = Array.from(years).sort((a, b) => b - a);
-        yearFilter.innerHTML =
-          '<option value="all">Tất cả năm</option>' +
-          sorted
-            .map(
-              (yy) =>
-                `<option value="${yy}" ${
-                  String(cur) === String(yy) ? "selected" : ""
-                }>${yy}</option>`
-            )
-            .join("");
-      }
-      /* ✅ ADDED: Helpers cho lọc tháng/năm + tự đổ danh sách năm */
-
-      function render() {
-        const q = (search.value || "").toLowerCase(),
-          s = statusFilter.value,
-          rf = roomFilter.value;
-
-        const filtered = rows.filter((r) => {
-          const st = statusOf(r).key;
-          const hit = [r.room, r.model, r.cartridge]
-            .join(" ")
-            .toLowerCase()
-            .includes(q);
-          const hitRoom = rf === "all" || (r.room || "") === rf;
-          const hitStatus = s === "all" || s === st;
-
-          /* ✅ ADDED: Lọc theo tháng/năm thao tác (đổ/thay) */
-          const hitMonthYear = hasActivityInSelectedMonthYear(r);
-          /* ✅ ADDED: Lọc theo tháng/năm thao tác (đổ/thay) */
-
-          return hit && hitRoom && hitStatus && hitMonthYear;
-        });
-
-        tbody.innerHTML = filtered
-          .map((r, i) => {
-            const st = statusOf(r);
-            return `<tr>
-          <td class="tag">${i + 1}</td>
-          <td>${escapeHtml(r.room || "")}</td>
-          <td>${escapeHtml(r.model || "")}</td>
-          <td><code>${escapeHtml(r.cartridge || "")}</code></td>
-          <td>${Number(r.refillCnt || 0)}</td>
-          <td>${
-            r.lastReplace
-              ? `<span class="date-pill filled">${new Date(
-                  r.lastReplace
-                ).toLocaleDateString("vi-VN")}</span>`
-              : '<span class="tag">(chưa có)</span>'
-          }</td>
-          <td>${escapeHtml(r.note || "")}</td>
-          <td><span class="badge ${st.key}">${st.text}</span></td>
-          <td class="row-actions">
-            <button class="chip-btn" title="Đổ mực +1" onclick="incRefill('${
-              r.id
-            }')">+ Đổ</button>
-            <button class="chip-btn" title="Ghi nhận đã thay hộp mực" onclick="markReplace('${
-              r.id
-            }')">✓ Thay</button>
-            <button class="chip-btn" onclick="openEdit('${r.id}')">Sửa</button>
-            <button class="chip-btn" onclick="removeRow('${r.id}')">Xoá</button>
-          </td>
-          <td><button class="chip-btn" onclick="openHistory('${
-            r.id
-          }')">Lịch sử</button></td>
-        </tr>`;
-          })
-          .join("");
-
-        renderFilters();
-
-        /* ✅ ADDED: cập nhật danh sách năm (để chọn năm có dữ liệu) */
-        renderYearFilter();
-        /* ✅ ADDED: cập nhật danh sách năm (để chọn năm có dữ liệu) */
-      }
-
-      /* ---- Actions ---- */
-      function incRefill(id) {
-        const iso = new Date().toISOString().slice(0, 10);
-        rows = rows.map((r) => {
-          if (r.id !== id) return r;
-          const cnt = Number(r.refillCnt || 0) + 1;
-          const history = Array.isArray(r.history) ? r.history.slice() : [];
-          history.push({
-            ts: iso,
-            action: "refill",
-            note: `Đổ mực lần ${cnt}`,
-          });
-          return { ...r, refillCnt: cnt, history };
-        });
-        save();
-        render();
-      }
-      function markReplace(id) {
-        const iso = new Date().toISOString().slice(0, 10);
-        rows = rows.map((r) => {
-          if (r.id !== id) return r;
-          const history = Array.isArray(r.history) ? r.history.slice() : [];
-          const prev = r.lastReplace
-            ? ` (trước: ${new Date(r.lastReplace).toLocaleDateString("vi-VN")})`
-            : "";
-          history.push({
-            ts: iso,
-            action: "replace",
-            note: `Thay hộp mực${prev}`,
-          });
-          return { ...r, refillCnt: 0, lastReplace: iso, history };
-        });
-        save();
-        render();
-      }
-      function removeRow(id) {
-        if (!confirm("Xoá máy in này?")) return;
-        rows = rows.filter((r) => r.id !== id);
-        save();
-        render();
-      }
-      function openEdit(id = null) {
-        editingId = id;
-        if (id) {
-          const r = rows.find((x) => x.id === id) || {};
-          fRoom.value = r.room || "";
-          fModel.value = r.model || "";
-          fCartridge.value = r.cartridge || "";
-          fRefillCnt.value = Number(r.refillCnt || 0);
-          fLastReplace.value = (r.lastReplace || "").slice(0, 10);
-          fNote.value = r.note || "";
-          document.getElementById("dlgTitle").textContent = "Sửa máy in";
-        } else {
-          fRoom.value = fModel.value = fCartridge.value = fNote.value = "";
-          fRefillCnt.value = 0;
-          fLastReplace.value = "";
-          document.getElementById("dlgTitle").textContent = "Thêm máy in";
-        }
-        editDlg.showModal();
-      }
-      document.getElementById("saveRow").onclick = () => {
-        const data = {
-          room: fRoom.value.trim(),
-          model: fModel.value.trim(),
-          cartridge: fCartridge.value.trim(),
-          refillCnt: Number(fRefillCnt.value || 0),
-          lastReplace: fLastReplace.value || "",
-          note: fNote.value.trim(),
-        };
-        if (editingId) {
-          const old = rows.find((r) => r.id === editingId) || {};
-          const history = Array.isArray(old.history) ? old.history : [];
-          rows = rows.map((r) =>
-            r.id === editingId ? { ...r, ...data, history } : r
-          );
-        } else {
-          rows = [{ id: genId(), ...data, history: [] }, ...rows];
-        }
-        save();
-        render();
-        editDlg.close();
-      };
-
-      /* ---- History helpers ---- */
-      function renderHistoryTable(printerId) {
-        const r = rows.find((x) => x.id === printerId);
-        if (!r) return;
-
-        document.getElementById("historyTitle").textContent = `${
-          r.room || ""
-        } • ${r.model || ""}`;
-
-        const list = Array.isArray(r.history)
-          ? r.history.map((h, index) => ({ ...h, index })).reverse()
-          : [];
-
-        document.getElementById("historyTbody").innerHTML = list
-          .map((h) => {
-            const label =
-              h.action === "replace"
-                ? "Thay hộp mực"
-                : h.action === "refill"
-                ? "Đổ mực"
-                : h.action || "";
-
-            return `<tr>
-          <td style="padding:8px;border-bottom:1px dashed var(--border)">${(
-            h.ts || ""
-          ).toString()}</td>
-          <td style="padding:8px;border-bottom:1px dashed var(--border)">${label}</td>
-          <td style="padding:8px;border-bottom:1px dashed var(--border)">${escapeHtml(
-            h.note || ""
-          )}</td>
-          <td style="padding:8px;border-bottom:1px dashed var(--border)">
-            <button class="chip-btn" onclick="deleteHistoryEntry('${r.id}', ${
-              h.index
-            })">Xoá</button>
-          </td>
-        </tr>`;
-          })
-          .join("");
-      }
-
-      /* ---- History dialog ---- */
-      function openHistory(id) {
-        renderHistoryTable(id);
-        historyDlg.showModal();
-      }
-
-      function deleteHistoryEntry(printerId, index) {
-        const printer = rows.find((x) => x.id === printerId);
-        if (!printer || !Array.isArray(printer.history)) return;
-
-        if (!confirm("Xoá dòng lịch sử này?")) return;
-
-        const newHistory = printer.history.slice();
-        if (index < 0 || index >= newHistory.length) return;
-
-        newHistory.splice(index, 1);
-
-        rows = rows.map((r) =>
-          r.id === printerId ? { ...r, history: newHistory } : r
-        );
-
-        save();
-        render();
-        renderHistoryTable(printerId);
-      }
-
-      /* ---- CSV import/export (append-all) ---- */
-      csvInput.addEventListener("change", async (e) => {
-        const file = e.target?.files?.[0];
-        if (!file) return;
-        await importCsvFileAppendAll(file);
-        e.target.value = "";
-      });
-      ["dragenter", "dragover"].forEach((evt) =>
-        dropZone.addEventListener(evt, (e) => {
-          e.preventDefault();
-          dropZone.classList.add("dragover");
-        })
-      );
-      ["dragleave", "drop"].forEach((evt) =>
-        dropZone.addEventListener(evt, (e) => {
-          e.preventDefault();
-          dropZone.classList.remove("dragover");
-        })
-      );
-      dropZone.addEventListener("drop", async (e) => {
-        const file = e.dataTransfer?.files?.[0];
-        if (!file) return;
-        await importCsvFileAppendAll(file);
-      });
-
-      function normalizeImportedRow(nr) {
-        return {
-          id: nr.id && String(nr.id).trim() ? String(nr.id).trim() : genId(),
-          room: nr.room || "",
-          model: nr.model || "",
-          cartridge: nr.cartridge || "",
-          refillCnt: Number(nr.refillCnt || 0),
-          lastReplace: (nr.lastReplace || "").slice(0, 10),
-          note: nr.note || "",
-          history: Array.isArray(nr.history) ? nr.history : [],
-        };
-      }
-      function appendAll(existingRows, parsedRows) {
-        const existingIds = new Set(existingRows.map((r) => r.id));
-        const newIds = new Set();
-        const appended = parsedRows.map((nr) => {
-          let r = normalizeImportedRow(nr);
-          while (existingIds.has(r.id) || newIds.has(r.id)) {
-            r.id = genId();
-          }
-          newIds.add(r.id);
-          return r;
-        });
-        return existingRows.concat(appended);
-      }
-      async function importCsvFileAppendAll(file) {
-        const text = await file.text();
-        const newRows = parseCsv(text);
-        if (!newRows.length) {
-          alert("CSV không hợp lệ hoặc rỗng.");
-          return;
-        }
-        rows = appendAll(rows, newRows);
-        save();
-        render();
-      }
-      function csvCell(v) {
-        if (v == null) return "";
-        const s = String(v).replaceAll('"', '""');
-        return /[",\n]/.test(s) ? `"${s}"` : s;
-      }
-      function parseCsv(text) {
-        text = text.replace(/^\uFEFF/, "");
-        const lines = text.split(/\r?\n/).filter(Boolean);
-        if (!lines.length) return [];
-        const headers = splitCsvLine(lines[0]).map((h) => h.trim());
-        const idx = (name) =>
-          headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
-        const map = {
-          id: idx("id"),
-          room:
-            idx("room") > -1
-              ? idx("room")
-              : idx("phòng") > -1
-              ? idx("phòng")
-              : idx("phòng/ bộ phận"),
-          model: idx("model") > -1 ? idx("model") : idx("tên máy/model"),
-          cartridge:
-            idx("cartridge") > -1 ? idx("cartridge") : idx("mã hộp mực"),
-          refillCnt:
-            idx("refillcnt") > -1 ? idx("refillcnt") : idx("lần đổ mực"),
-          lastReplace:
-            idx("lastreplace") > -1 ? idx("lastreplace") : idx("ngày thay"),
-          note: idx("note") > -1 ? idx("note") : idx("ghi chú"),
-        };
-        return lines
-          .slice(1)
-          .map((line) => {
-            const cells = splitCsvLine(line);
-            const pick = (i) => (i != null && i > -1 ? cells[i] || "" : "");
-            const obj = {
-              id: pick(map.id),
-              room: pick(map.room),
-              model: pick(map.model),
-              cartridge: pick(map.cartridge),
-              refillCnt: Number(pick(map.refillCnt) || 0),
-              lastReplace: (pick(map.lastReplace) || "").slice(0, 10),
-              note: pick(map.note),
-            };
-            if (!obj.room && !obj.model) return null;
-            return obj;
-          })
-          .filter(Boolean);
-      }
-      function splitCsvLine(line) {
-        const out = [];
-        let cur = "";
-        let inQ = false;
-        for (let i = 0; i < line.length; i++) {
-          const ch = line[i];
-          if (inQ) {
-            if (ch === '"') {
-              if (line[i + 1] === '"') {
-                cur += '"';
-                i++;
-              } else {
-                inQ = false;
-              }
-            } else cur += ch;
-          } else {
-            if (ch === '"') inQ = true;
-            else if (ch === ",") {
-              out.push(cur);
-              cur = "";
-            } else cur += ch;
-          }
-        }
-        out.push(cur);
-        return out;
-      }
-
-      /* ✅ ADDED: Xuất lịch sử ra CSV (Excel) theo filter Tháng/Năm */
-      function downloadCsv(content, filename) {
-        const blob = new Blob(["\uFEFF" + content], {
-          type: "text/csv;charset=utf-8;",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-
-      function exportHistoryCsv() {
-        const m = monthFilter.value; // "all" or "1".."12"
-        const y = yearFilter.value; // "all" or "2025"...
-
-        const headers = [
-          "Phòng/Bộ phận",
-          "Tên máy/Model",
-          "Mã hộp mực",
-          "Thời điểm",
-          "Hành động",
-          "Ghi chú",
-        ];
-
-        const lines = [headers.map(csvCell).join(",")];
-
-        rows.forEach((r) => {
-          const hist = Array.isArray(r.history) ? r.history : [];
-          hist.forEach((h) => {
-            const d = toDateSafe(h.ts);
-            if (!d) return;
-
-            const hitM = m === "all" || d.getMonth() + 1 === Number(m);
-            const hitY = y === "all" || d.getFullYear() === Number(y);
-            if (!hitM || !hitY) return;
-
-            const action =
-              h.action === "replace"
-                ? "Thay hộp mực"
-                : h.action === "refill"
-                ? "Đổ mực"
-                : h.action || "";
-
-            lines.push(
-              [
-                r.room || "",
-                r.model || "",
-                r.cartridge || "",
-                h.ts || "",
-                action,
-                h.note || "",
-              ]
-                .map(csvCell)
-                .join(",")
-            );
-          });
-        });
-
-        if (lines.length === 1) {
-          alert("Không có dữ liệu lịch sử trong Tháng/Năm đã chọn để xuất.");
-          return;
-        }
-
-        const yPart = y === "all" ? "tat_ca_nam" : y;
-        const mPart =
-          m === "all" ? "tat_ca_thang" : `thang_${String(m).padStart(2, "0")}`;
-        const filename = `lich_su_do_thay_muc_${mPart}_${yPart}.csv`;
-
-        downloadCsv(lines.join("\n"), filename);
-      }
-
-      exportHistoryBtn.addEventListener("click", exportHistoryCsv);
-      /* ✅ ADDED: Xuất lịch sử ra CSV (Excel) theo filter Tháng/Năm */
-
-      /* ---- Page init ---- */
-      addBtn.addEventListener("click", () => openEdit(null));
-      resetBtn.addEventListener("click", () => {
-        if (confirm("Xoá dữ liệu đã lưu trong trình duyệt?")) {
-          localStorage.removeItem(KEY);
-          rows = EXAMPLE;
-          render();
-        }
-      });
-      search.addEventListener("input", render);
-      statusFilter.addEventListener("change", render);
-      roomFilter.addEventListener("change", render);
-
-      /* ✅ ADDED: lắng nghe thay đổi tháng/năm -> lọc lại bảng */
-      monthFilter.addEventListener("change", render);
-      yearFilter.addEventListener("change", render);
-      /* ✅ ADDED: lắng nghe thay đổi tháng/năm -> lọc lại bảng */
-
-      function setStickyTop() {
-        const h = document.querySelector("header");
-        let px = h?.offsetHeight || 88;
-        px = Math.min(Math.max(px, 56), 140); // clamp 56–140px để tránh “đội” quá cao
-        document.documentElement.style.setProperty("--sticky-top", px + "px");
-      }
-      setStickyTop();
-      new ResizeObserver(setStickyTop).observe(
-        document.querySelector("header")
-      );
-      window.addEventListener("resize", setStickyTop);
-
-      render();
-    </script>
-  </body>
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+  <script src="app.js"></script>
+</body>
 </html>
