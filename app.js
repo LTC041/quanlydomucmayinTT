@@ -438,6 +438,21 @@
     });
   }
 
+    // Cập nhật chiều cao thanh đầu trang để tiêu đề bảng không bị đè.
+  // Hàm này cũng ngăn JavaScript bị lỗi khi trang vừa tải lại.
+  function setStickyHeaderOffset() {
+    if (!els.topbar) return;
+
+    const headerHeight = Math.ceil(
+      els.topbar.getBoundingClientRect().height,
+    );
+
+    document.documentElement.style.setProperty(
+      "--header-height",
+      `${Math.max(0, headerHeight)}px`,
+    );
+  }
+
   function openDialog(dialog) {
     if (typeof dialog.showModal === 'function' && !dialog.open) dialog.showModal();
   }
