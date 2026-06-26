@@ -431,11 +431,13 @@
     renderRows(rows);
     els.resultInfo.textContent = state.rows.length ? `Hiển thị ${rows.length}/${state.rows.length} máy` : 'Chưa có dữ liệu';
     els.emptyState.hidden = rows.length > 0;
-    $$('.summary-card').forEach((card) => {
+    $$(".summary-card").forEach((card) => {
       const active = card.dataset.statusCard === els.statusFilter.value;
-      card.classList.toggle('is-active', active);
-      card.setAttribute('aria-pressed', String(active));
+      card.classList.toggle("is-active", active);
+      card.setAttribute("aria-pressed", String(active));
     });
+
+    setStickyHeaderOffset();
   }
 
     // Cập nhật chiều cao thanh đầu trang để tiêu đề bảng không bị đè.
