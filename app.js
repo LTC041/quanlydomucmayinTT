@@ -1262,5 +1262,57 @@
     }
   }
 
+  function forceRefreshDataWhenPageLoads() {
+    let refreshed = loadStore();
+
+    // Trường hợp dữ liệu bản mới đang trống nhưng dữ liệu của giao diện cũ vẫn còn.
+    if ((!refreshed?.rows?.length) && (!state?.rows?.length)) {
+      try {
+        const legacyRaw = localStorage.getItem(LEGACY_KEY);
+        const legacyRows = JSON.parse(legacyRaw || '[]');
+
+        if (Array.isArray(legacyRows) && legacyRows.length > 0) {
+          refreshed = {
+            rows: legacyRows.map(normalizePrinter),
+            settings: normalizeSettings(refreshed?.settings || DEFAULT_SETTINGS),
+          };
+
+          localStorage.setItem(STORE_KEY, JSON.stringify({
+            version: 2,
+            rows: refreshed.rows,
+            settings: refreshed.settings,
+            savedAt: nowLocalISO(),
+          }));
+        }
+      } catch (error) {
+        console.warn('Không thể kiểm tra dữ liệu cũ.', error);
+      }
+    }
+
+    // Chỉ cập nhật state khi đọc được dữ liệu,
+    // không ghi đè dữ liệu đang hiển thị bằng dữ liệu rỗng.
+    if (refreshed && (refreshed.rows.length > 0 || state.rows.length === 0)) {
+      state = refreshed;
+    }
+
+    // Sau khi tải lại trang, luôn đưa các bộ lọc về trạng thái “Tất cả”.
+    els.search.value = '';
+    els.statusFilter.value = 'all';
+    els.roomFilter.value = 'all';
+    els.monthFilter.value = 'all';
+    els.yearFilter.value = 'all';
+    els.sortBy.value = 'priority';
+
+    render();
+  }
+
   init();
+
+  // Chạy khi bấm F5, tải lại trang hoặc trình duyệt khôi phục lại trang từ bộ nhớ đệm.
+  window.addEventListener('pageshow', () => {
+    window.setTimeout(forceRefreshDataWhenPageLoads, 0);
+  });
+
+  // Kiểm tra lại một lần sau khi giao diện đã dựng xong.
+  window.setTimeout(forceRefreshDataWhenPageLoads, 80);
 })();
