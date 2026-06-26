@@ -71,6 +71,7 @@
     confirmCancel: $('#confirmCancel'),
   };
 
+  let migratedFromLegacy = false;
   let state = loadStore();
   let editingId = null;
   let pendingImportRows = [];
@@ -192,24 +193,41 @@
     return { threshold, theme };
   }
 
-  function loadStore() {
+  function readStoredData(key) {
     try {
-      const raw = localStorage.getItem(STORE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const rows = Array.isArray(parsed?.rows) ? parsed.rows : [];
-        return { rows: rows.map(normalizePrinter), settings: normalizeSettings(parsed?.settings) };
-      }
-      const legacyRaw = localStorage.getItem(LEGACY_KEY);
-      if (legacyRaw) {
-        const legacyRows = JSON.parse(legacyRaw);
-        if (Array.isArray(legacyRows)) {
-          return { rows: legacyRows.map(normalizePrinter), settings: { ...DEFAULT_SETTINGS } };
-        }
-      }
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const rows = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.rows) ? parsed.rows : null);
+      if (!rows) return null;
+      return {
+        rows: rows.map(normalizePrinter),
+        settings: normalizeSettings(parsed?.settings),
+      };
     } catch (error) {
-      console.warn('Không thể đọc dữ liệu cục bộ.', error);
+      console.warn(`Không thể đọc dữ liệu cục bộ từ ${key}.`, error);
+      return null;
     }
+  }
+
+  function loadStore() {
+    const current = readStoredData(STORE_KEY);
+    const legacy = readStoredData(LEGACY_KEY);
+
+    // Ưu tiên dữ liệu phiên bản mới khi đã có danh sách máy in.
+    if (current?.rows?.length) return current;
+
+    // Bảo vệ dữ liệu cũ: nếu bản v2 đang trống nhưng bản v1 còn máy in,
+    // tự lấy bản v1 để hiển thị và chép sang v2 ngay trong lần khởi động này.
+    if (legacy?.rows?.length) {
+      migratedFromLegacy = true;
+      return {
+        rows: legacy.rows,
+        settings: current?.settings ?? { ...DEFAULT_SETTINGS },
+      };
+    }
+
+    if (current) return current;
     return { rows: [], settings: { ...DEFAULT_SETTINGS } };
   }
 
@@ -264,13 +282,15 @@
   }
 
   function getFilters() {
+    // Một số trình duyệt khôi phục giá trị cũ của biểu mẫu sau khi tải lại.
+    // Chuẩn hóa giá trị rỗng về "all" để danh sách không bị lọc thành rỗng.
     return {
       query: cleanText(els.search.value, 200),
-      status: els.statusFilter.value,
-      room: els.roomFilter.value,
-      month: els.monthFilter.value,
-      year: els.yearFilter.value,
-      sortBy: els.sortBy.value,
+      status: els.statusFilter.value || 'all',
+      room: els.roomFilter.value || 'all',
+      month: els.monthFilter.value || 'all',
+      year: els.yearFilter.value || 'all',
+      sortBy: els.sortBy.value || 'priority',
     };
   }
 
@@ -1110,13 +1130,17 @@
     toast(`Đã xuất báo cáo Excel gồm ${rows.length} máy in và ${history.length} dòng lịch sử.`);
   }
 
-  function clearFilters() {
+  function applyDefaultFilters() {
     els.search.value = '';
     els.statusFilter.value = 'all';
     els.roomFilter.value = 'all';
     els.monthFilter.value = 'all';
     els.yearFilter.value = 'all';
     els.sortBy.value = 'priority';
+  }
+
+  function clearFilters() {
+    applyDefaultFilters();
     render();
   }
 
@@ -1221,11 +1245,20 @@
   function init() {
     document.documentElement.dataset.theme = state.settings.theme;
     els.themeIcon.textContent = state.settings.theme === 'dark' ? '☀' : '☾';
+
+    // Luôn mở trang ở chế độ "xem tất cả". Điều này ngăn bộ lọc cũ của
+    // trình duyệt làm danh sách trống sau khi người dùng tải lại trang.
+    applyDefaultFilters();
     setupEvents();
     render();
-    if (localStorage.getItem(LEGACY_KEY) && !localStorage.getItem(STORE_KEY)) {
+
+    // Đảm bảo giao diện được vẽ lại sau khi trình duyệt hoàn tất khôi phục
+    // trạng thái biểu mẫu/bộ nhớ đệm khi tải lại trang.
+    requestAnimationFrame(render);
+
+    if (migratedFromLegacy) {
       saveStore();
-      toast('Đã tự động chuyển dữ liệu từ phiên bản cũ sang phiên bản nâng cấp.');
+      toast('Đã tự động khôi phục và chuyển dữ liệu từ phiên bản cũ sang phiên bản nâng cấp.');
     }
   }
 
