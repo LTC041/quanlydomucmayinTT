@@ -160,3 +160,193 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-bottom-width: 2px;
 @media (max-width: 760px) { .topbar-main { align-items: flex-start; padding-top: max(14px, env(safe-area-inset-top)); }.brand-icon { width: 40px; height: 40px; border-radius: 12px; font-size: 20px; }.brand-subtitle { display: none; }.topbar-actions .button span:last-child { display: none; }.topbar-actions .button { min-width: 42px; padding: 8px; font-size: 19px; }.command-bar { gap: 9px; padding-bottom: 12px; }.command-bar-right { display: grid; grid-template-columns: 1fr 1fr auto; width: 100%; }.command-bar-right .button { width: 100%; min-width: 0; padding-left: 9px; padding-right: 9px; }.menu-wrap { justify-self: end; }.menu-wrap > .button { width: auto; }.dropdown-menu { right: 0; width: min(270px, calc(100vw - 32px)); }.page { padding-top: 16px; }.summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }.summary-card { min-height: 105px; padding: 14px; border-radius: 14px; }.summary-card strong { font-size: 28px; }.filter-panel { margin-top: 14px; padding: 14px; border-radius: 14px; }.filter-panel-heading { margin-bottom: 12px; }.filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }.compact-field:last-child { grid-column: 1 / -1; }.list-section { margin-top: 12px; border-radius: 14px; }.desktop-table-wrap { display: none; }.mobile-card-list { display: grid; gap: 0; }.mobile-card { padding: 15px; border-bottom: 1px solid var(--line); }.mobile-card:last-child { border-bottom: 0; }.mobile-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; }.mobile-card h3 { margin: 0 0 2px; font-size: 14px; }.mobile-card .room-line { margin: 0; color: var(--text-muted); font-size: 12px; }.mobile-card .mobile-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 13px; margin-top: 12px; }.mobile-meta-item { display: grid; gap: 2px; min-width: 0; }.mobile-meta-label { color: var(--text-faint); font-size: 10px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }.mobile-meta-value { overflow: hidden; color: var(--text); font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }.mobile-card .row-actions { flex-wrap: wrap; margin-top: 13px; }.action-btn { min-height: 38px; padding: 7px 10px; }.app-footer { display: grid; padding-top: 12px; line-height: 1.5; }.form-grid { grid-template-columns: 1fr; }.form-span-2 { grid-column: auto; }.modal { max-height: calc(100vh - 16px); border-radius: 16px; }.modal-header, .modal-body, .modal-footer { padding-left: 16px; padding-right: 16px; }.modal-header { padding-top: 16px; }.modal-footer { padding-top: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }.history-item { grid-template-columns: auto 1fr; }.history-time { grid-column: 2; text-align: left; }.drop-hint { display: none; } }
 @media (max-width: 420px) { .topbar-actions { gap: 6px; }.icon-button { width: 40px; height: 40px; }.summary-label { font-size: 11px; }.summary-hint { font-size: 10px; }.command-bar-right .button { font-size: 12px; }.command-bar-right .button span[aria-hidden="true"] { display: none; }.filter-grid { grid-template-columns: 1fr; }.compact-field:last-child { grid-column: auto; }.mobile-card .mobile-meta { grid-template-columns: 1fr; }.modal-footer .button { flex: 1 1 0; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+/* =========================================================
+   CẢI THIỆN HIỂN THỊ BẢNG TRÊN LAPTOP, MÀN HÌNH NHỎ VÀ MOBILE
+   - Giữ cột thao tác luôn nhìn thấy
+   - Không bị mất nút Xóa sau nút Sửa
+   - Cho phép cuộn ngang bảng khi màn hình chưa đủ rộng
+   ========================================================= */
+
+/* Vùng bảng desktop có thể cuộn ngang độc lập */
+.desktop-table-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+/* Bảng cần đủ rộng để không bóp các cột quan trọng */
+.data-table {
+  min-width: 1360px;
+}
+
+/* Kích thước hợp lý hơn cho từng cột */
+.data-table th:nth-child(1),
+.data-table td:nth-child(1) {
+  width: 48px;
+  min-width: 48px;
+}
+
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  min-width: 170px;
+}
+
+.data-table th:nth-child(3),
+.data-table td:nth-child(3) {
+  min-width: 100px;
+}
+
+.data-table th:nth-child(4),
+.data-table td:nth-child(4) {
+  min-width: 170px;
+}
+
+.data-table th:nth-child(5),
+.data-table td:nth-child(5) {
+  min-width: 105px;
+}
+
+.data-table th:nth-child(6),
+.data-table td:nth-child(6) {
+  min-width: 82px;
+}
+
+.data-table th:nth-child(7),
+.data-table td:nth-child(7) {
+  min-width: 135px;
+}
+
+.data-table th:nth-child(8),
+.data-table td:nth-child(8) {
+  min-width: 165px;
+}
+
+.data-table th:nth-child(9),
+.data-table td:nth-child(9) {
+  min-width: 135px;
+}
+
+/* Cột Thao tác luôn nằm cố định bên phải khi cuộn ngang */
+@media (min-width: 761px) {
+  .data-table th:last-child,
+  .data-table td:last-child {
+    position: sticky;
+    right: 0;
+    min-width: 248px;
+    border-left: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: -12px 0 18px -18px rgba(15, 23, 42, 0.45);
+  }
+
+  .data-table th:last-child {
+    z-index: 8;
+    background: var(--surface-soft);
+  }
+
+  .data-table td:last-child {
+    z-index: 5;
+  }
+
+  .data-table tbody tr:hover td:last-child {
+    background: color-mix(in srgb, var(--primary-soft) 48%, var(--surface));
+  }
+
+  /* Không cho các nút bị co hoặc rơi xuống dòng */
+  .data-table .row-actions {
+    min-width: 224px;
+    flex-wrap: nowrap;
+  }
+
+  .data-table .action-btn {
+    flex: 0 0 auto;
+  }
+
+  /* Nút Xóa dạng biểu tượng, luôn có đủ chỗ hiển thị */
+  .data-table .action-btn.danger {
+    width: 33px;
+    min-width: 33px;
+    padding-right: 0;
+    padding-left: 0;
+    font-size: 16px;
+    line-height: 1;
+  }
+}
+
+/* Laptop cỡ vừa: giảm khoảng đệm một chút để nhìn được nhiều nội dung hơn */
+@media (min-width: 761px) and (max-width: 1180px) {
+  .data-table th {
+    padding: 12px 10px;
+    font-size: 9px;
+  }
+
+  .data-table td {
+    padding: 12px 10px;
+    font-size: 12px;
+  }
+
+  .data-table {
+    min-width: 1290px;
+  }
+}
+
+/* Điện thoại/tablet nhỏ: dùng thẻ thông tin thay bảng, nút thao tác rõ ràng */
+@media (max-width: 760px) {
+  .mobile-card .row-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mobile-card .action-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Nút xóa chiếm nguyên một hàng để tránh bấm nhầm */
+  .mobile-card .action-btn.danger {
+    grid-column: 1 / -1;
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+    background: var(--danger-soft);
+  }
+
+  .mobile-card .action-btn.danger::after {
+    content: " Xóa máy in";
+    font-size: 12px;
+  }
+}
+
+/* Điện thoại rất nhỏ */
+@media (max-width: 420px) {
+  .shell {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-card {
+    min-height: 98px;
+    padding: 12px;
+  }
+
+  .summary-card strong {
+    font-size: 26px;
+  }
+
+  .filter-panel {
+    padding: 12px;
+  }
+
+  .mobile-card {
+    padding: 13px;
+  }
+}
