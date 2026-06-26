@@ -361,54 +361,235 @@
     return `<span class="status-badge badge-${status.key}" title="${escapeHtml(status.detail)}">${escapeHtml(status.label)}</span>`;
   }
 
-  function actionButtons(printer) {
-    return `<div class="row-actions">
-      <button class="action-btn refill" type="button" data-action="refill" data-id="${escapeHtml(printer.id)}" title="Ghi nhận đã đổ mực">+ Đổ</button>
-      <button class="action-btn replace" type="button" data-action="replace" data-id="${escapeHtml(printer.id)}" title="Ghi nhận đã thay hộp mực">✓ Thay</button>
-      <button class="action-btn" type="button" data-action="history" data-id="${escapeHtml(printer.id)}">Lịch sử</button>
-      <button class="action-btn" type="button" data-action="edit" data-id="${escapeHtml(printer.id)}" aria-label="Sửa ${escapeHtml(printer.model)}">Sửa</button>
-      <button class="action-btn danger" type="button" data-action="delete" data-id="${escapeHtml(printer.id)}" aria-label="Xóa ${escapeHtml(printer.model)}">×</button>
-    </div>`;
-  }
+function actionButtons(printer) {
+  const printerName = escapeHtml(printer.model || "máy in");
 
-  function renderRows(rows) {
-    els.tbody.innerHTML = rows.map((printer, index) => {
+  return `<div class="row-actions" aria-label="Thao tác cho ${printerName}">
+    <button
+      class="action-btn refill"
+      type="button"
+      data-action="refill"
+      data-id="${escapeHtml(printer.id)}"
+      title="Ghi nhận đã đổ mực cho ${printerName}"
+    >
+      <span aria-hidden="true">+</span> Đổ
+    </button>
+
+    <button
+      class="action-btn replace"
+      type="button"
+      data-action="replace"
+      data-id="${escapeHtml(printer.id)}"
+      title="Ghi nhận đã thay hộp mực cho ${printerName}"
+    >
+      <span aria-hidden="true">✓</span> Thay
+    </button>
+
+    <button
+      class="action-btn history"
+      type="button"
+      data-action="history"
+      data-id="${escapeHtml(printer.id)}"
+      title="Xem lịch sử thao tác của ${printerName}"
+    >
+      <span aria-hidden="true">◷</span>
+      <span class="action-label">Lịch sử</span>
+    </button>
+
+    <button
+      class="action-btn icon-action"
+      type="button"
+      data-action="edit"
+      data-id="${escapeHtml(printer.id)}"
+      title="Sửa ${printerName}"
+      aria-label="Sửa ${printerName}"
+    >
+      <span aria-hidden="true">✎</span>
+      <span class="sr-only">Sửa</span>
+    </button>
+
+    <button
+      class="action-btn danger icon-action"
+      type="button"
+      data-action="delete"
+      data-id="${escapeHtml(printer.id)}"
+      title="Xóa ${printerName}"
+      aria-label="Xóa ${printerName}"
+    >
+      <span aria-hidden="true">×</span>
+      <span class="sr-only">Xóa</span>
+    </button>
+  </div>`;
+}
+
+function renderRows(rows) {
+  els.tbody.innerHTML = rows
+    .map((printer, index) => {
       const status = statusOf(printer);
       const latest = latestHistory(printer);
-      const countClass = status.key === 'danger' ? 'is-danger' : status.key === 'warn' ? 'is-warn' : '';
+
+      const countClass =
+        status.key === "danger"
+          ? "is-danger"
+          : status.key === "warn"
+            ? "is-warn"
+            : "";
+
       return `<tr>
         <td class="row-index">${index + 1}</td>
-        <td><div class="main-cell"><span class="primary-line">${escapeHtml(printer.room || 'Chưa phân loại')}</span><span class="secondary-line">${escapeHtml(printer.note || 'Không có ghi chú')}</span></div></td>
-        <td>${printer.assetCode ? `<span class="mono">${escapeHtml(printer.assetCode)}</span>` : '<span class="muted">—</span>'}</td>
-        <td><div class="main-cell"><span class="primary-line">${escapeHtml(printer.model || 'Chưa cập nhật')}</span></div></td>
-        <td><span class="mono">${escapeHtml(printer.cartridge || '—')}</span></td>
-        <td class="center"><span class="count-bubble ${countClass}">${printer.refillCnt}</span></td>
-        <td class="date-cell">${printer.lastReplace ? formatDate(printer.lastReplace) : '<span class="muted">Chưa có</span>'}</td>
-        <td class="date-cell">${latest ? `<div class="main-cell"><span class="primary-line">${latest.action === 'replace' ? 'Thay hộp mực' : latest.action === 'refill' ? 'Đổ mực' : 'Cập nhật'}</span><span class="secondary-line">${formatDateTime(latest.ts)}</span></div>` : '<span class="muted">Chưa phát sinh</span>'}</td>
+
+        <td>
+          <div class="main-cell">
+            <span class="primary-line">
+              ${escapeHtml(printer.room || "Chưa phân loại")}
+            </span>
+
+            ${
+              printer.note
+                ? `<span class="secondary-line">${escapeHtml(
+                    printer.note,
+                  )}</span>`
+                : ""
+            }
+          </div>
+        </td>
+
+        <td>
+          ${
+            printer.assetCode
+              ? `<span class="mono">${escapeHtml(printer.assetCode)}</span>`
+              : '<span class="muted">—</span>'
+          }
+        </td>
+
+        <td>
+          <div class="main-cell">
+            <span class="primary-line">
+              ${escapeHtml(printer.model || "Chưa cập nhật")}
+            </span>
+          </div>
+        </td>
+
+        <td>
+          <span class="mono">
+            ${escapeHtml(printer.cartridge || "—")}
+          </span>
+        </td>
+
+        <td class="center">
+          <span class="count-bubble ${countClass}">
+            ${printer.refillCnt}
+          </span>
+        </td>
+
+        <td class="date-cell">
+          ${
+            printer.lastReplace
+              ? formatDate(printer.lastReplace)
+              : '<span class="muted">Chưa có</span>'
+          }
+        </td>
+
+        <td class="date-cell">
+          ${
+            latest
+              ? `<div class="main-cell">
+                  <span class="primary-line">
+                    ${
+                      latest.action === "replace"
+                        ? "Thay hộp mực"
+                        : latest.action === "refill"
+                          ? "Đổ mực"
+                          : "Cập nhật"
+                    }
+                  </span>
+                  <span class="secondary-line">
+                    ${formatDateTime(latest.ts)}
+                  </span>
+                </div>`
+              : '<span class="muted">Chưa phát sinh</span>'
+          }
+        </td>
+
         <td>${statusBadge(status)}</td>
+
         <td>${actionButtons(printer)}</td>
       </tr>`;
-    }).join('');
+    })
+    .join("");
 
-    els.mobileList.innerHTML = rows.map((printer) => {
+  els.mobileList.innerHTML = rows
+    .map((printer) => {
       const status = statusOf(printer);
       const latest = latestHistory(printer);
-      const lastText = latest ? `${latest.action === 'replace' ? 'Thay hộp mực' : latest.action === 'refill' ? 'Đổ mực' : 'Cập nhật'} · ${formatDateTime(latest.ts)}` : 'Chưa phát sinh';
+
+      const lastText = latest
+        ? `${
+            latest.action === "replace"
+              ? "Thay hộp mực"
+              : latest.action === "refill"
+                ? "Đổ mực"
+                : "Cập nhật"
+          } · ${formatDateTime(latest.ts)}`
+        : "Chưa phát sinh";
+
       return `<article class="mobile-card">
         <div class="mobile-card-top">
-          <div><h3>${escapeHtml(printer.model || 'Chưa cập nhật')}</h3><p class="room-line">${escapeHtml(printer.room || 'Chưa phân loại')}${printer.assetCode ? ` · ${escapeHtml(printer.assetCode)}` : ''}</p></div>
+          <div>
+            <h3>${escapeHtml(printer.model || "Chưa cập nhật")}</h3>
+
+            <p class="room-line">
+              ${escapeHtml(printer.room || "Chưa phân loại")}
+              ${
+                printer.assetCode
+                  ? ` · ${escapeHtml(printer.assetCode)}`
+                  : ""
+              }
+            </p>
+          </div>
+
           ${statusBadge(status)}
         </div>
+
         <div class="mobile-meta">
-          <div class="mobile-meta-item"><span class="mobile-meta-label">Mã hộp mực</span><span class="mobile-meta-value mono">${escapeHtml(printer.cartridge || '—')}</span></div>
-          <div class="mobile-meta-item"><span class="mobile-meta-label">Số lần đổ</span><span class="mobile-meta-value">${printer.refillCnt} lần</span></div>
-          <div class="mobile-meta-item"><span class="mobile-meta-label">Lần thay gần nhất</span><span class="mobile-meta-value">${printer.lastReplace ? formatDate(printer.lastReplace) : 'Chưa có'}</span></div>
-          <div class="mobile-meta-item"><span class="mobile-meta-label">Cập nhật gần nhất</span><span class="mobile-meta-value">${escapeHtml(lastText)}</span></div>
+          <div class="mobile-meta-item">
+            <span class="mobile-meta-label">Mã hộp mực</span>
+            <span class="mobile-meta-value mono">
+              ${escapeHtml(printer.cartridge || "—")}
+            </span>
+          </div>
+
+          <div class="mobile-meta-item">
+            <span class="mobile-meta-label">Số lần đổ</span>
+            <span class="mobile-meta-value">
+              ${printer.refillCnt} lần
+            </span>
+          </div>
+
+          <div class="mobile-meta-item">
+            <span class="mobile-meta-label">Lần thay gần nhất</span>
+            <span class="mobile-meta-value">
+              ${
+                printer.lastReplace
+                  ? formatDate(printer.lastReplace)
+                  : "Chưa có"
+              }
+            </span>
+          </div>
+
+          <div class="mobile-meta-item">
+            <span class="mobile-meta-label">Cập nhật gần nhất</span>
+            <span class="mobile-meta-value">
+              ${escapeHtml(lastText)}
+            </span>
+          </div>
         </div>
+
         ${actionButtons(printer)}
       </article>`;
-    }).join('');
-  }
+    })
+    .join("");
+}
 
   function renderSummary() {
     const counts = state.rows.reduce((acc, printer) => {
@@ -423,37 +604,62 @@
     els.thresholdHint.textContent = `Từ ${state.settings.threshold} lần đổ`;
   }
 
-  function render() {
-    renderRoomOptions();
-    renderYearOptions();
-    const rows = getFilteredRows();
-    renderSummary();
-    renderRows(rows);
-    els.resultInfo.textContent = state.rows.length ? `Hiển thị ${rows.length}/${state.rows.length} máy` : 'Chưa có dữ liệu';
-    els.emptyState.hidden = rows.length > 0;
-    $$(".summary-card").forEach((card) => {
-      const active = card.dataset.statusCard === els.statusFilter.value;
-      card.classList.toggle("is-active", active);
-      card.setAttribute("aria-pressed", String(active));
-    });
+function render() {
+  renderRoomOptions();
+  renderYearOptions();
 
-    setStickyHeaderOffset();
-  }
+  const rows = getFilteredRows();
 
-    // Cập nhật chiều cao thanh đầu trang để tiêu đề bảng không bị đè.
-  // Hàm này cũng ngăn JavaScript bị lỗi khi trang vừa tải lại.
-  function setStickyHeaderOffset() {
-    if (!els.topbar) return;
+  renderSummary();
+  renderRows(rows);
 
-    const headerHeight = Math.ceil(
-      els.topbar.getBoundingClientRect().height,
+  els.resultInfo.textContent = state.rows.length
+    ? `Hiển thị ${rows.length}/${state.rows.length} máy`
+    : "Chưa có dữ liệu";
+
+  els.emptyState.hidden = rows.length > 0;
+
+  $$(".summary-card").forEach((card) => {
+    const active = card.dataset.statusCard === els.statusFilter.value;
+
+    card.classList.toggle("is-active", active);
+    card.setAttribute("aria-pressed", String(active));
+  });
+
+  /*
+    Nếu toàn bộ danh sách chưa có Mã quản lý,
+    tự ẩn cột này để bảng thoáng hơn.
+  */
+  const printerTable = $("#printerTable");
+
+  if (printerTable) {
+    const hasAssetCode = state.rows.some((printer) =>
+      Boolean(cleanText(printer.assetCode)),
     );
 
-    document.documentElement.style.setProperty(
-      "--header-height",
-      `${Math.max(0, headerHeight)}px`,
-    );
+    printerTable.classList.toggle("no-asset-code", !hasAssetCode);
   }
+
+  setStickyHeaderOffset();
+}
+
+/*
+  Hàm này bắt buộc phải tồn tại vì phần setupEvents()
+  đang gọi lại nó khi đổi kích thước màn hình.
+  Nó cũng giúp tránh lỗi JavaScript khi F5.
+*/
+function setStickyHeaderOffset() {
+  if (!els.topbar) return;
+
+  const headerHeight = Math.ceil(
+    els.topbar.getBoundingClientRect().height,
+  );
+
+  document.documentElement.style.setProperty(
+    "--header-height",
+    `${Math.max(0, headerHeight)}px`,
+  );
+}
 
   function openDialog(dialog) {
     if (typeof dialog.showModal === 'function' && !dialog.open) dialog.showModal();
