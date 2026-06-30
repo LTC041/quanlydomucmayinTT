@@ -199,7 +199,68 @@
       </div>
     </form>
   </dialog>
+<dialog class="modal" id="refillDialog">
+  <form id="refillForm" novalidate>
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">GHI NHẬN THAO TÁC</p>
+        <h2>Đổ mực máy in</h2>
+        <p class="modal-subtitle" id="refillPrinterName"></p>
+      </div>
 
+      <button
+        class="icon-button"
+        type="button"
+        data-close-dialog="refillDialog"
+        aria-label="Đóng"
+      >
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <label class="field">
+        <span>Ngày đổ mực <b>*</b></span>
+        <input id="fRefillDate" type="date" required />
+      </label>
+
+      <label class="field">
+        <span>Ghi chú</span>
+        <textarea
+          id="fRefillNote"
+          maxlength="500"
+          rows="3"
+          placeholder="Ví dụ: Đổ mực định kỳ, thực hiện bởi kỹ thuật..."
+        ></textarea>
+      </label>
+
+      <p class="form-help">
+        Hệ thống sẽ tăng thêm 01 lần đổ mực và ghi nhận đúng ngày anh lựa chọn.
+      </p>
+
+      <p
+        class="form-error"
+        id="refillFormError"
+        role="alert"
+        hidden
+      ></p>
+    </div>
+
+    <div class="modal-footer">
+      <button
+        class="button button-ghost"
+        type="button"
+        data-close-dialog="refillDialog"
+      >
+        Hủy
+      </button>
+
+      <button class="button button-primary" type="submit">
+        Lưu lần đổ mực
+      </button>
+    </div>
+  </form>
+</dialog>
   <dialog class="modal modal-wide" id="historyDialog">
     <div class="modal-header">
       <div>
