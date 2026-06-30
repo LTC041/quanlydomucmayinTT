@@ -818,19 +818,200 @@ function setStickyHeaderOffset() {
   function openHistory(id) {
     const printer = findPrinter(id);
     if (!printer) return;
-    const history = [...normalizeHistory(printer.history)].sort((a, b) => dateValue(b.ts) - dateValue(a.ts));
-    els.historyTitle.textContent = 'Lịch sử thao tác';
-    els.historySubtitle.textContent = `${printer.room || 'Chưa phân loại'} · ${printer.model || 'Chưa cập nhật'}${printer.assetCode ? ` · ${printer.assetCode}` : ''}`;
+
+    /*
+      Giữ lại vị trí gốc của từng dòng lịch sử.
+      Không dùng số thứ tự sau khi sắp xếp, tránh xóa nhầm dòng.
+    */
+    const sourceHistory = Array.isArray(printer.history)
+      ? printer.history
+      : [];
+
+    const history = sourceHistory
+      .map((rawEntry, sourceIndex) => {
+        const normalized = normalizeHistory([rawEntry])[0];
+
+        return normalized
+          ? {
+              ...normalized,
+              sourceIndex,
+            }
+          : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => dateValue(b.ts) - dateValue(a.ts));
+
+    els.historyTitle.textContent = "Lịch sử thao tác";
+
+    els.historySubtitle.textContent =
+      `${printer.room || "Chưa phân loại"} · ` +
+      `${printer.model || "Chưa cập nhật"}` +
+      `${printer.assetCode ? ` · ${printer.assetCode}` : ""}`;
+
     const status = statusOf(printer);
-    els.historySummary.innerHTML = `<span class="pill">Mã mực: ${escapeHtml(printer.cartridge || '—')}</span><span class="pill">Đổ mực hiện tại: ${printer.refillCnt} lần</span><span class="pill">${escapeHtml(status.label)}</span><span class="pill">Thay gần nhất: ${printer.lastReplace ? formatDate(printer.lastReplace) : 'Chưa có'}</span>`;
+
+    els.historySummary.innerHTML = `
+      <span class="pill">Mã mực: ${escapeHtml(
+        printer.cartridge || "—",
+      )}</span>
+      <span class="pill">Đổ mực hiện tại: ${
+        printer.refillCnt
+      } lần</span>
+      <span class="pill">${escapeHtml(status.label)}</span>
+      <span class="pill">Thay gần nhất: ${
+        printer.lastReplace
+          ? formatDate(printer.lastReplace)
+          : "Chưa có"
+      }</span>
+    `;
+
     els.historyEmpty.hidden = history.length > 0;
-    els.historyList.innerHTML = history.map((entry) => {
-      const symbol = entry.action === 'replace' ? '✓' : entry.action === 'refill' ? '+' : 'i';
-      const label = entry.action === 'replace' ? 'Thay hộp mực' : entry.action === 'refill' ? 'Đổ mực' : 'Cập nhật thông tin';
-      return `<article class="history-item"><span class="history-symbol ${entry.action}">${symbol}</span><div><h3>${label}</h3><p>${escapeHtml(entry.note || 'Không có ghi chú')}</p></div><time class="history-time">${formatDateTime(entry.ts)}</time></article>`;
-    }).join('');
+
+    els.historyList.innerHTML = history
+      .map((entry) => {
+        const symbol =
+          entry.action === "replace"
+            ? "✓"
+            : entry.action === "refill"
+              ? "+"
+              : "i";
+
+        const label =
+          entry.action === "replace"
+            ? "Thay hộp mực"
+            : entry.action === "refill"
+              ? "Đổ mực"
+              : "Cập nhật thông tin";
+
+        return `
+          <article class="history-item">
+            <span class="history-symbol ${entry.action}">
+              ${symbol}
+            </span>
+
+            <div>
+              <h3>${label}</h3>
+              <p>${escapeHtml(entry.note || "Không có ghi chú")}</p>
+            </div>
+
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 8px;
+                margin-left: auto;
+              "
+            >
+              <time class="history-time">
+                ${formatDateTime(entry.ts)}
+              </time>
+
+              <button
+                class="action-btn danger"
+                type="button"
+                data-history-action="delete"
+                data-printer-id="${escapeHtml(printer.id)}"
+                data-history-index="${entry.sourceIndex}"
+                title="Xóa dòng lịch sử này"
+                aria-label="Xóa lịch sử ${label}"
+                style="white-space: nowrap;"
+              >
+                Xóa
+              </button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    /*
+      Dùng onclick thay vì addEventListener để mỗi lần mở lịch sử
+      chỉ có một sự kiện xóa, không bị chạy lặp nhiều lần.
+    */
+    els.historyList.onclick = async (event) => {
+      const button = event.target.closest(
+        "[data-history-action='delete']",
+      );
+
+      if (!button) return;
+
+      await deleteHistoryEntry(
+        button.dataset.printerId,
+        Number(button.dataset.historyIndex),
+      );
+    };
+
     openDialog(els.historyDialog);
   }
+
+  async function deleteHistoryEntry(printerId, historyIndex) {
+    const printer = findPrinter(printerId);
+
+    if (!printer || !Array.isArray(printer.history)) return;
+
+    if (
+      !Number.isInteger(historyIndex) ||
+      historyIndex < 0 ||
+      historyIndex >= printer.history.length
+    ) {
+      toast("Không tìm thấy dòng lịch sử cần xóa.", "error");
+      return;
+    }
+
+    const entry = normalizeHistory([printer.history[historyIndex]])[0];
+
+    const actionLabel =
+      entry?.action === "replace"
+        ? "Thay hộp mực"
+        : entry?.action === "refill"
+          ? "Đổ mực"
+          : "Cập nhật thông tin";
+
+    const accepted = await confirmAction({
+      title: "Xóa dòng lịch sử",
+      message:
+        `Bạn có chắc muốn xóa lịch sử “${actionLabel}” ` +
+        `vào ${formatDateTime(entry?.ts)}? ` +
+        `Số lần đổ và ngày thay hiện tại sẽ được giữ nguyên.`,
+      acceptLabel: "Xóa lịch sử",
+      danger: true,
+      icon: "!",
+    });
+
+    if (!accepted) return;
+
+    const before = snapshotState();
+
+    const newHistory = printer.history.filter(
+      (_, index) => index !== historyIndex,
+    );
+
+    state.rows = state.rows.map((row) =>
+      row.id === printerId
+        ? normalizePrinter({
+            ...row,
+            history: newHistory,
+            updatedAt: nowLocalISO(),
+          })
+        : row,
+    );
+
+    saveStore();
+    render();
+
+    /*
+      Hiển thị lại ngay dialog lịch sử sau khi xóa,
+      để không cần đóng rồi mở lại.
+    */
+    openHistory(printerId);
+
+    setUndo(
+      before,
+      "Đã xóa một dòng lịch sử. Bấm Hoàn tác nếu xóa nhầm.",
+    );
+  }
+
 
   async function removePrinter(id) {
     const printer = findPrinter(id);
