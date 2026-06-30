@@ -50,8 +50,16 @@
     fRefillCnt: $('#fRefillCnt'),
     fLastReplace: $('#fLastReplace'),
     fNote: $('#fNote'),
-    formError: $('#formError'),
-    historyDialog: $('#historyDialog'),
+formError: $("#formError"),
+
+refillDialog: $("#refillDialog"),
+refillForm: $("#refillForm"),
+refillPrinterName: $("#refillPrinterName"),
+fRefillDate: $("#fRefillDate"),
+fRefillNote: $("#fRefillNote"),
+refillFormError: $("#refillFormError"),
+
+historyDialog: $("#historyDialog"),
     historyTitle: $('#historyTitle'),
     historySubtitle: $('#historySubtitle'),
     historySummary: $('#historySummary'),
@@ -77,7 +85,7 @@
   let pendingImportRows = [];
   let pendingConfirm = null;
   let lastUndo = null;
-
+let refillPrinterId = null;
   function safeUUID() {
     return globalThis.crypto?.randomUUID?.() || `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   }
@@ -734,16 +742,101 @@ function setStickyHeaderOffset() {
     });
   }
 
-  function recordRefill(id) {
-    const printer = findPrinter(id);
-    if (!printer) return;
-    const before = snapshotState();
-    const nextCount = printer.refillCnt + 1;
-    const history = [...printer.history, { id: safeUUID(), ts: nowLocalISO(), action: 'refill', note: `Đổ mực lần ${nextCount} kể từ lần thay hộp mực gần nhất.` }];
-    updatePrinter(id, (current) => ({ ...current, refillCnt: nextCount, history, updatedAt: nowLocalISO() }));
-    const status = statusOf(findPrinter(id));
-    setUndo(before, status.key === 'danger' ? `Đã ghi nhận đổ mực lần ${nextCount}. Máy đã đến hạn thay hộp mực.` : `Đã ghi nhận đổ mực lần ${nextCount}.`);
+function recordRefill(id) {
+  const printer = findPrinter(id);
+  if (!printer) return;
+
+  refillPrinterId = id;
+
+  els.refillPrinterName.textContent =
+    `${printer.room || "Chưa phân loại"} · ` +
+    `${printer.model || "Chưa cập nhật"}`;
+
+  els.fRefillDate.value = todayISO();
+  els.fRefillDate.max = todayISO();
+
+  els.fRefillNote.value = "";
+  els.refillFormError.hidden = true;
+  els.refillFormError.textContent = "";
+
+  openDialog(els.refillDialog);
+
+  window.setTimeout(() => {
+    els.fRefillDate.focus();
+  }, 40);
+}
+
+function saveRefill(event) {
+  event.preventDefault();
+
+  const printer = findPrinter(refillPrinterId);
+
+  if (!printer) {
+    closeDialog(els.refillDialog);
+    return;
   }
+
+  const refillDate = normalizeDate(els.fRefillDate.value);
+  const refillNote = cleanText(els.fRefillNote.value, 500);
+
+  const selectedDate = parseLocalDate(refillDate);
+  const today = parseLocalDate(todayISO());
+
+  if (!refillDate || !selectedDate) {
+    els.refillFormError.textContent =
+      "Vui lòng chọn ngày đổ mực.";
+    els.refillFormError.hidden = false;
+    return;
+  }
+
+  if (today && selectedDate > today) {
+    els.refillFormError.textContent =
+      "Ngày đổ mực không được sau ngày hôm nay.";
+    els.refillFormError.hidden = false;
+    return;
+  }
+
+  const before = snapshotState();
+  const nextCount = printer.refillCnt + 1;
+
+  const defaultNote =
+    `Đổ mực lần ${nextCount} kể từ lần thay hộp mực gần nhất.`;
+
+  const history = [
+    ...normalizeHistory(printer.history),
+    {
+      id: safeUUID(),
+      ts: refillDate,
+      action: "refill",
+      note: refillNote
+        ? `${defaultNote} Ghi chú: ${refillNote}`
+        : defaultNote,
+    },
+  ];
+
+  updatePrinter(refillPrinterId, (current) => ({
+    ...current,
+    refillCnt: nextCount,
+    history,
+    updatedAt: nowLocalISO(),
+  }));
+
+  closeDialog(els.refillDialog);
+  refillPrinterId = null;
+
+  const status = statusOf(findPrinter(printer.id));
+
+  setUndo(
+    before,
+    status.key === "danger"
+      ? `Đã ghi nhận đổ mực lần ${nextCount} ngày ${formatDate(
+          refillDate,
+        )}. Máy đã đến hạn thay hộp mực.`
+      : `Đã ghi nhận đổ mực lần ${nextCount} ngày ${formatDate(
+          refillDate,
+        )}.`,
+  );
+}
 
   async function recordReplace(id) {
     const printer = findPrinter(id);
@@ -1579,6 +1672,7 @@ function setStickyHeaderOffset() {
     els.addPrinter.addEventListener('click', () => openEdit());
     els.emptyAddBtn.addEventListener('click', () => openEdit());
     els.printerForm.addEventListener('submit', saveForm);
+    els.refillForm.addEventListener("submit", saveRefill);
     els.tbody.addEventListener('click', handleRowAction);
     els.mobileList.addEventListener('click', handleRowAction);
 
@@ -1629,6 +1723,9 @@ function setStickyHeaderOffset() {
     els.confirmAccept.addEventListener('click', () => finishConfirm(true));
     els.confirmCancel.addEventListener('click', () => finishConfirm(false));
     els.confirmDialog.addEventListener('cancel', (event) => { event.preventDefault(); finishConfirm(false); });
+    els.refillDialog.addEventListener("close", () => {
+  refillPrinterId = null;
+});
 
     ['dragenter', 'dragover'].forEach((name) => els.dropZone.addEventListener(name, (event) => { event.preventDefault(); els.dropZone.classList.add('dragover'); }));
     ['dragleave', 'drop'].forEach((name) => els.dropZone.addEventListener(name, (event) => { event.preventDefault(); els.dropZone.classList.remove('dragover'); }));
